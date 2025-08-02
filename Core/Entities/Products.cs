@@ -11,7 +11,7 @@
         public required decimal Price { get; set; }    // τιμή μονάδας
         public decimal TotalValue { get; set; }    // Price * Quantity (μπορείς να το υπολογίζεις σε service)
         public required int WarehouseId { get; set; }
-        public required Warehouse Warehouse { get; set; }
+        public Warehouse? Warehouse { get; set; }
     }
 }
 

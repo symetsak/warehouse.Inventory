@@ -122,6 +122,32 @@ namespace Infrastructure.Persistence
                       .IsRequired()
                       .HasMaxLength(50);
             });
+
+            // --- Seed Warehouses ---
+            modelBuilder.Entity<Warehouse>().HasData(
+            new Warehouse { Id = 1, Name = "Κεντρική Αποθήκη", Address = "Λεωφ. Αθηνών 123" },
+            new Warehouse { Id = 2, Name = "Υποκατάστημα Πειραιά", Address = "Οδός Θησέως 45" }
+            );
+
+            // --- Seed Products ---
+            modelBuilder.Entity<Product>().HasData(
+                new Product { Id = 1, Code = "PRD001", Name = "Μπουκάλι Νερό", Description = "500ml", Unit = "pcs", Quantity = 100, Price = 0.50m, TotalValue = 50m, WarehouseId = 1 },
+                new Product { Id = 2, Code = "PRD002", Name = "Χαρτί Α4", Description = "Pack 500", Unit = "pcs", Quantity = 20, Price = 5.00m, TotalValue = 100m, WarehouseId = 1 },
+                new Product { Id = 3, Code = "PRD003", Name = "Μολύβι HB", Description = "Ξύλινο", Unit = "pcs", Quantity = 200, Price = 0.25m, TotalValue = 50m, WarehouseId = 2 }
+            );
+
+            // --- Seed Users ---
+            modelBuilder.Entity<User>().HasData(
+                new User { Id = 1, FullName = "Διαχειριστής", Mobile = "6900000000", Email = "admin@company.com", Username = "admin", Password = "admin123", Role = "Admin" },
+                new User { Id = 2, FullName = "Υπάλληλος", Mobile = "6999999999", Email = "clerk@company.com", Username = "clerk", Password = "clerk123", Role = "Clerk" }
+            );
+
+            // --- (προαιρετικά) Seed Inventory Records ---
+            modelBuilder.Entity<Inventory>().HasData(
+                new Inventory{ Id = 1,ScanCode = "SCN1001",Code = "PRD001", Action = "Input", WarehouseId = 1, UserId = 1,Timestamp = new DateTime(2025, 8, 1, 9, 0, 0, DateTimeKind.Utc) },
+                new Inventory{ Id = 2, ScanCode = "SCN1002",Code = "PRD002", Action = "Input", WarehouseId = 1, UserId = 2,Timestamp = new DateTime(2025, 8, 1, 10, 0, 0, DateTimeKind.Utc) }
+            );
+ 
         }
     }
 }
