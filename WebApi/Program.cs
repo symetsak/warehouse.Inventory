@@ -1,5 +1,6 @@
 using Infrastructure.Persistence;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.EntityFrameworkCore.Diagnostics;
 
 namespace WebApi
 {
@@ -12,12 +13,11 @@ namespace WebApi
             // 1. Ανάγνωση connection string
             var connStr = builder.Configuration.GetConnectionString("DefaultConnection");
 
-            Console.WriteLine($"ConnStr = {connStr}");
-
-
             // 2. Καταχώρηση DbContext
             builder.Services.AddDbContext<ApplicationDbContext>(options =>
-                options.UseSqlServer(connStr));
+                options.UseSqlServer(connStr).ConfigureWarnings(w =>
+            w.Ignore(RelationalEventId.PendingModelChangesWarning)));
+
 
 
             // Add services to the container.
