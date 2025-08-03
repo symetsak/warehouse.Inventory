@@ -1,0 +1,56 @@
+﻿@page "/warehouse-edit/{Id:int?}"
+@using BlazorClient.Services
+@using Shared.DTOs
+@inject IWarehouseService WarehouseService
+@inject NavigationManager NavManager
+
+<h3>@(Id == null ? "Create Warehouse" : "Edit Warehouse")</h3>
+
+<EditForm Model="model" OnValidSubmit="HandleValidSubmit">
+    <DataAnnotationsValidator />
+    <ValidationSummary />
+
+    <div class="mb-3">
+        <label>Name</label>
+        <InputText @bind-Value="model.Name" class="form-control" />
+    </div>
+    <div class="mb-3">
+        <label>Address</label>
+        <InputText @bind-Value="model.Address" class="form-control" />
+    </div>
+
+    <button type="submit" class="btn btn-primary">Save</button>
+    <button type="button" class="btn btn-secondary ms-2" @onclick='() => NavManager.NavigateTo("/warehouses")'>Cancel</button>
+</EditForm>
+
+@code {
+    [Parameter]
+    public int? Id { get; set; }
+
+    private CreateWarehouseDto model = new();
+
+    protected override async Task OnInitializedAsync()
+    {
+        if (Id != null)
+        {
+            var dto = await WarehouseService.GetByIdAsync(Id.Value);
+            if (dto != null)
+            {
+                model = new CreateWarehouseDto
+                {
+                    Name = dto.Name,
+                    Address = dto.Address
+                };
+            }
+        }
+    }
+
+    async Task HandleValidSubmit()
+    {
+        if (Id == null)
+            await WarehouseService.CreateAsync(model);
+        else
+            await WarehouseService.UpdateAsync(Id.Value, model);
+        NavManager.NavigateTo("/warehouses");
+    }
+}

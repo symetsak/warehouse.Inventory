@@ -1,0 +1,72 @@
+﻿@page "/inventory-edit/{Id:int?}"
+@using BlazorClient.Services
+@using Shared.DTOs
+@inject IInventoryService InventoryService
+@inject NavigationManager NavManager
+
+<h3>@(Id == null ? "Create Inventory" : "Edit Inventory")</h3>
+
+<EditForm Model="model" OnValidSubmit="HandleValidSubmit">
+    <DataAnnotationsValidator />
+    <ValidationSummary />
+
+    <div class="mb-3">
+        <label>ScanCode</label>
+        <InputText @bind-Value="model.ScanCode" class="form-control" />
+    </div>
+    <div class="mb-3">
+        <label>Code</label>
+        <InputText @bind-Value="model.Code" class="form-control" />
+    </div>
+    <div class="mb-3">
+        <label>Action</label>
+        <InputText @bind-Value="model.Action" class="form-control" />
+    </div>
+    <div class="mb-3">
+        <label>WarehouseId</label>
+        <InputNumber @bind-Value="model.WarehouseId" class="form-control" />
+    </div>
+    <div class="mb-3">
+        <label>UserId</label>
+        <InputNumber @bind-Value="model.UserId" class="form-control" />
+    </div>
+
+    <button type="submit" class="btn btn-primary">Save</button>
+    <button type="button" class="btn btn-secondary ms-2" @onclick='() => NavManager.NavigateTo("/inventory")'>Cancel</button>
+</EditForm>
+
+@code {
+    [Parameter]
+    public int? Id { get; set; }
+
+    private CreateInventoryDto model = new();
+
+    protected override async Task OnInitializedAsync()
+    {
+        if (Id != null)
+        {
+            var dto = await InventoryService.GetByIdAsync(Id.Value);
+            if (dto != null)
+            {
+                model = new CreateInventoryDto
+                {
+                    ScanCode = dto.ScanCode,
+                    Code = dto.Code,
+                    Action = dto.Action,
+                    WarehouseId = dto.WarehouseId,
+                    UserId = dto.UserId
+                };
+            }
+        }
+    }
+
+    async Task HandleValidSubmit()
+    {
+        if (Id == null)
+            await InventoryService.CreateAsync(model);
+        else
+            await InventoryService.UpdateAsync(Id.Value, model);
+
+        NavManager.NavigateTo("/inventory");
+    }
+}

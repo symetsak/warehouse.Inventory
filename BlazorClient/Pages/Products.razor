@@ -1,0 +1,81 @@
+﻿@page "/products"
+@using BlazorClient.Services
+@using Shared.DTOs
+@inject IProductService ProductService
+
+<h3>Products</h3>
+
+<button class="btn btn-primary mb-3" @onclick="CreateNew">Create New Product</button>
+
+@if (products is null)
+{
+    <p><em>Loading...</em></p>
+}
+else if (!products.Any())
+{
+    <p>No products found.</p>
+}
+else
+{
+    <table class="table table-striped">
+        <thead>
+            <tr>
+                <th>Code</th>
+                <th>Name</th>
+                <th>Quantity</th>
+                <th>Price</th>
+                <th>Total</th>
+                <th>Warehouse</th>
+                <th></th>
+            </tr>
+        </thead>
+        <tbody>
+            @foreach (var p in products)
+            {
+                <tr>
+                    <td>@p.Code</td>
+                    <td>@p.Name</td>
+                    <td>@p.Quantity</td>
+                    <td>@p.Price</td>
+                    <td>@p.TotalValue</td>
+                    <td>@p.WarehouseName</td>
+                    <td>
+                        <button class="btn btn-sm btn-secondary me-1" @onclick="() => Edit(p.Id)">Edit</button>
+                        <button class="btn btn-sm btn-danger" @onclick="() => Delete(p.Id)">Delete</button>
+                    </td>
+                </tr>
+            }
+        </tbody>
+    </table>
+}
+
+@code {
+    private List<ProductDto>? products;
+
+    protected override async Task OnInitializedAsync()
+    {
+        products = (await ProductService.GetAllAsync()).ToList();
+    }
+
+    void CreateNew()
+    {
+        NavManager.NavigateTo("/product-edit");
+    }
+
+    void Edit(int id)
+    {
+        NavManager.NavigateTo($"/product-edit/{id}");
+    }
+
+    async Task Delete(int id)
+    {
+        if (await JsRuntime.InvokeAsync<bool>("confirm", "Delete this product?"))
+        {
+            await ProductService.DeleteAsync(id);
+            products = (await ProductService.GetAllAsync()).ToList();
+        }
+    }
+
+    [Inject] NavigationManager NavManager { get; set; } = default!;
+    [Inject] IJSRuntime JsRuntime { get; set; } = default!;
+}
