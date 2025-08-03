@@ -1,0 +1,77 @@
+﻿@page "/user-edit/{Id:int?}"
+@using BlazorClient.Services
+@using Shared.DTOs
+@inject IUserService UserService
+@inject NavigationManager NavManager
+
+<h3>@(Id == null ? "Create User" : "Edit User")</h3>
+
+<EditForm Model="model" OnValidSubmit="HandleValidSubmit">
+    <DataAnnotationsValidator />
+    <ValidationSummary />
+
+    <div class="mb-3">
+        <label>Full Name</label>
+        <InputText @bind-Value="model.FullName" class="form-control" />
+    </div>
+    <div class="mb-3">
+        <label>Mobile</label>
+        <InputText @bind-Value="model.Mobile" class="form-control" />
+    </div>
+    <div class="mb-3">
+        <label>Email</label>
+        <InputText @bind-Value="model.Email" class="form-control" />
+    </div>
+    <div class="mb-3">
+        <label>Username</label>
+        <InputText @bind-Value="model.Username" class="form-control" />
+    </div>
+    <div class="mb-3">
+        <label>Password</label>
+        <InputText @bind-Value="model.Password" type="password" class="form-control" />
+    </div>
+    <div class="mb-3">
+        <label>Role</label>
+        <InputText @bind-Value="model.Role" class="form-control" />
+    </div>
+
+    <button type="submit" class="btn btn-primary">Save</button>
+    <button type="button" class="btn btn-secondary ms-2" @onclick='() => NavManager.NavigateTo("/users")'>Cancel</button>
+</EditForm>
+
+@code {
+    [Parameter]
+    public int? Id { get; set; }
+
+    private CreateUserDto model = new();
+
+    protected override async Task OnInitializedAsync()
+    {
+        if (Id != null)
+        {
+            var dto = await UserService.GetByIdAsync(Id.Value);
+            if (dto != null)
+            {
+                model = new CreateUserDto
+                {
+                    FullName = dto.FullName,
+                    Mobile = dto.Mobile,
+                    Email = dto.Email,
+                    Username = dto.Username,
+                    Password = string.Empty, // placeholder
+                    Role = dto.Role
+                };
+            }
+        }
+    }
+
+    async Task HandleValidSubmit()
+    {
+        if (Id == null)
+            await UserService.CreateAsync(model);
+        else
+            await UserService.UpdateAsync(Id.Value, model);
+
+        NavManager.NavigateTo("/users");
+    }
+}

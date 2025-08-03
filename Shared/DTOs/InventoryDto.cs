@@ -1,4 +1,4 @@
-﻿namespace WebApi.DTOs
+﻿namespace Shared.DTOs
 {
     public class InventoryDto
     {

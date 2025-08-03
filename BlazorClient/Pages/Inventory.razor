@@ -1,0 +1,72 @@
+﻿@page "/inventory"
+@using BlazorClient.Services
+@using Shared.DTOs
+@inject IInventoryService InventoryService
+@inject NavigationManager NavManager
+@inject IJSRuntime JsRuntime
+
+<h3>Inventory Records</h3>
+
+<button class="btn btn-primary mb-3" @onclick='() => NavManager.NavigateTo("/inventory-edit")'>
+    Create New Inventory
+</button>
+
+@if (records is null)
+{
+    <p><em>Loading...</em></p>
+}
+else if (!records.Any())
+{
+    <p>No records found.</p>
+}
+else
+{
+    <table class="table table-striped">
+        <thead>
+            <tr>
+                <th>ScanCode</th>
+                <th>Code</th>
+                <th>Action</th>
+                <th>Timestamp</th>
+                <th>Warehouse</th>
+                <th>User</th>
+                <th></th>
+            </tr>
+        </thead>
+        <tbody>
+            @foreach (var r in records)
+            {
+                <tr>
+                    <td>@r.ScanCode</td>
+                    <td>@r.Code</td>
+                    <td>@r.Action</td>
+                    <td>@r.Timestamp</td>
+                    <td>@r.WarehouseName</td>
+                    <td>@r.UserName</td>
+                    <td>
+                        <button class="btn btn-sm btn-secondary me-1" @onclick='() => NavManager.NavigateTo($"/inventory-edit/{r.Id}")'>Edit</button>
+                        <button class="btn btn-sm btn-danger" @onclick="() => Delete(r.Id)">Delete</button>
+                    </td>
+                </tr>
+            }
+        </tbody>
+    </table>
+}
+
+@code {
+    private List<InventoryDto>? records;
+
+    protected override async Task OnInitializedAsync()
+    {
+        records = (await InventoryService.GetAllAsync()).ToList();
+    }
+
+    async Task Delete(int id)
+    {
+        if (await JsRuntime.InvokeAsync<bool>("confirm", "Delete this record?"))
+        {
+            await InventoryService.DeleteAsync(id);
+            records = (await InventoryService.GetAllAsync()).ToList();
+        }
+    }
+}

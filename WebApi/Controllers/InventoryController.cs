@@ -2,7 +2,7 @@
 using Microsoft.EntityFrameworkCore;
 using Infrastructure.Persistence;
 using Core.Entities;
-using WebApi.DTOs;
+using Shared.DTOs;
 
 namespace WebApi.Controllers
 {
