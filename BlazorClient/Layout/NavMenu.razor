@@ -1,39 +1,45 @@
-﻿<div class="top-row ps-3 navbar navbar-dark">
-    <div class="container-fluid">
-        <a class="navbar-brand" href="">BlazoeClient</a>
-        <button title="Navigation menu" class="navbar-toggler" @onclick="ToggleNavMenu">
-            <span class="navbar-toggler-icon"></span>
-        </button>
-    </div>
+﻿@* Navigation Menu with header *@
+<div class="nav-header">
+    <span class="nav-title">WMS</span>
+    <button class="nav-toggle" @onclick="ToggleNavMenu">≡</button>
 </div>
-
-<div class="@NavMenuCssClass nav-scrollable" @onclick="ToggleNavMenu">
+<div class="nav-scrollable @NavMenuCssClass">
     <nav class="flex-column">
-        <div class="nav-item px-3">
+        <div class="nav-item">
             <NavLink class="nav-link" href="" Match="NavLinkMatch.All">
-                <span class="bi bi-house-door-fill-nav-menu" aria-hidden="true"></span> Home
+                <span class="bi bi-house-door-fill"></span>
+                <span class="ms-2">Home</span>
             </NavLink>
         </div>
-        <div class="nav-item px-3">
-            <NavLink class="nav-link" href="counter">
-                <span class="bi bi-plus-square-fill-nav-menu" aria-hidden="true"></span> Counter
+        <div class="nav-item">
+            <NavLink class="nav-link" href="products" Match="NavLinkMatch.Prefix">
+                <span class="bi bi-box-seam"></span>
+                <span class="ms-2">Products</span>
             </NavLink>
         </div>
-        <div class="nav-item px-3">
-            <NavLink class="nav-link" href="weather">
-                <span class="bi bi-list-nested-nav-menu" aria-hidden="true"></span> Weather
+        <div class="nav-item">
+            <NavLink class="nav-link" href="warehouses" Match="NavLinkMatch.Prefix">
+                <span class="bi bi-bank2"></span>
+                <span class="ms-2">Warehouses</span>
+            </NavLink>
+        </div>
+        <div class="nav-item">
+            <NavLink class="nav-link" href="inventory" Match="NavLinkMatch.Prefix">
+                <span class="bi bi-journal-text"></span>
+                <span class="ms-2">Inventory</span>
+            </NavLink>
+        </div>
+        <div class="nav-item">
+            <NavLink class="nav-link" href="users" Match="NavLinkMatch.Prefix">
+                <span class="bi bi-people"></span>
+                <span class="ms-2">Users</span>
             </NavLink>
         </div>
     </nav>
 </div>
 
 @code {
-    private bool collapseNavMenu = true;
-
-    private string? NavMenuCssClass => collapseNavMenu ? "collapse" : null;
-
-    private void ToggleNavMenu()
-    {
-        collapseNavMenu = !collapseNavMenu;
-    }
+    private bool collapseNavMenu = false;
+    private string NavMenuCssClass => collapseNavMenu ? "collapsed" : "show";
+    private void ToggleNavMenu() => collapseNavMenu = !collapseNavMenu;
 }
