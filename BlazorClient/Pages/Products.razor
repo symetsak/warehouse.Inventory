@@ -1,11 +1,18 @@
 ﻿@page "/products"
 @using BlazorClient.Services
 @using Shared.DTOs
+@using Microsoft.AspNetCore.Components.Forms
 @inject IProductService ProductService
+@inject IJSRuntime JsRuntime
 
 <h3>Products</h3>
 
-<button class="btn btn-primary mb-3" @onclick="CreateNew">Create New Product</button>
+<div class="mb-3">
+    <button type="button" class="btn btn-primary me-2" @onclick="AddProduct">Add</button>
+    <button type="button" class="btn btn-secondary me-2" @onclick="ToggleEdit">@(isEditing ? "Cancel" : "Edit")</button>
+    <button type="button" class="btn btn-danger" @onclick="DeleteProduct" disabled="@(products == null || !products.Any())">Delete</button>
+    <button type="button" class="btn btn-success ms-2" @onclick="SaveProduct" disabled="@( !isEditing )">Save</button>
+</div>
 
 @if (products is null)
 {
@@ -17,65 +24,151 @@ else if (!products.Any())
 }
 else
 {
-    <table class="table table-striped">
-        <thead>
-            <tr>
-                <th>Code</th>
-                <th>Name</th>
-                <th>Quantity</th>
-                <th>Price</th>
-                <th>Total</th>
-                <th>Warehouse</th>
-                <th></th>
-            </tr>
-        </thead>
-        <tbody>
-            @foreach (var p in products)
+    <EditForm Model="formData" class="mb-4">
+        <div class="row g-3">
+            <div class="col-md-6">
+                <label class="form-label">Code</label>
+                <InputText @bind-Value="formData.Code" class="form-control" readonly="@(!isEditing)" />
+            </div>
+            <div class="col-md-6">
+                <label class="form-label">Name</label>
+                <InputText @bind-Value="formData.Name" class="form-control" readonly="@(!isEditing)" />
+            </div>
+            <div class="col-md-4">
+                <label class="form-label">Quantity</label>
+                <InputNumber @bind-Value="formData.Quantity" class="form-control" readonly="@(!isEditing)" />
+            </div>
+            <div class="col-md-4">
+                <label class="form-label">Price</label>
+                <InputNumber @bind-Value="formData.Price" class="form-control" readonly="@(!isEditing)" />
+            </div>
+            <div class="col-md-4">
+                <label class="form-label">Total</label>
+                <InputNumber @bind-Value="formData.TotalValue" class="form-control" readonly="true" />
+            </div>
+            <div class="col-md-6">
+                <label class="form-label">Warehouse</label>
+                <InputText @bind-Value="formData.WarehouseName" class="form-control" readonly="true" />
+            </div>
+        </div>
+    </EditForm>
+
+    <nav>
+        <ul class="pagination justify-content-center">
+            @for (int i = 0; i < products.Count; i++)
             {
-                <tr>
-                    <td>@p.Code</td>
-                    <td>@p.Name</td>
-                    <td>@p.Quantity</td>
-                    <td>@p.Price</td>
-                    <td>@p.TotalValue</td>
-                    <td>@p.WarehouseName</td>
-                    <td>
-                        <button class="btn btn-sm btn-secondary me-1" @onclick="() => Edit(p.Id)">Edit</button>
-                        <button class="btn btn-sm btn-danger" @onclick="() => Delete(p.Id)">Delete</button>
-                    </td>
-                </tr>
+                <li class="page-item @(i == currentIndex ? "active" : "")">
+                    <button type="button" class="page-link" @onclick="() => ChangeIndex(i)">@(i + 1)</button>
+                </li>
             }
-        </tbody>
-    </table>
+        </ul>
+    </nav>
 }
 
 @code {
     private List<ProductDto>? products;
+    private ProductDto formData = new();
+    private int currentIndex = 0;
+    private bool isEditing = false;
+    private bool isNew = false;
 
     protected override async Task OnInitializedAsync()
     {
         products = (await ProductService.GetAllAsync()).ToList();
-    }
-
-    void CreateNew()
-    {
-        NavManager.NavigateTo("/product-edit");
-    }
-
-    void Edit(int id)
-    {
-        NavManager.NavigateTo($"/product-edit/{id}");
-    }
-
-    async Task Delete(int id)
-    {
-        if (await JsRuntime.InvokeAsync<bool>("confirm", "Delete this product?"))
+        if (products.Any())
         {
-            await ProductService.DeleteAsync(id);
-            products = (await ProductService.GetAllAsync()).ToList();
+            await ChangeIndex(0);
         }
     }
 
-    [Inject] NavigationManager NavManager { get; set; } = default!;
-    [Inject] IJSRuntime JsRuntime { get; set; } = default!;
+    private async Task ChangeIndex(int idx)
+    {
+        if (products == null || idx < 0 || idx >= products.Count) return;
+        currentIndex = idx;
+        formData = new ProductDto
+        {
+            Id = products[idx].Id,
+            Code = products[idx].Code,
+            Name = products[idx].Name,
+            Quantity = products[idx].Quantity,
+            Price = products[idx].Price,
+            TotalValue = products[idx].TotalValue,
+            WarehouseName = products[idx].WarehouseName
+        };
+        isEditing = false;
+        isNew = false;
+        await InvokeAsync(StateHasChanged);
+    }
+
+    private void ToggleEdit()
+    {
+        if (products == null || !products.Any()) return;
+        isEditing = !isEditing;
+        if (!isEditing && !isNew)
+        {
+            // Revert changes
+#pragma warning disable BL0005
+            _ = ChangeIndex(currentIndex);
+#pragma warning restore BL0005
+        }
+    }
+
+    private void AddProduct()
+    {
+        isNew = true;
+        isEditing = true;
+        formData = new ProductDto();
+    }
+
+    private async Task SaveProduct()
+    {
+        if (isNew)
+        {
+            var created = await ProductService.CreateAsync(new CreateProductDto
+            {
+                Code = formData.Code,
+                Name = formData.Name,
+                Quantity = formData.Quantity,
+                Price = formData.Price,
+                // Map other required fields if any
+            });
+            products.Add(created);
+            await ChangeIndex(products.Count - 1);
+        }
+        else
+        {
+            await ProductService.UpdateAsync(formData.Id, new CreateProductDto
+            {
+                Code = formData.Code,
+                Name = formData.Name,
+                Quantity = formData.Quantity,
+                Price = formData.Price,
+                // Map other required fields if any
+            });
+            products[currentIndex] = formData;
+            await InvokeAsync(StateHasChanged);
+        }
+        isEditing = false;
+        isNew = false;
+    }
+
+    private async Task DeleteProduct()
+    {
+        if (products == null || !products.Any()) return;
+
+        if (await JsRuntime.InvokeAsync<bool>("confirm", "Delete this product?"))
+        {
+            await ProductService.DeleteAsync(formData.Id);
+            products.RemoveAt(currentIndex);
+            if (products.Any())
+            {
+                await ChangeIndex(0);
+            }
+            else
+            {
+                formData = new ProductDto();
+                isEditing = false;
+            }
+        }
+    }
 }
