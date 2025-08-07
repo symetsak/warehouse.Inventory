@@ -26,6 +26,7 @@ namespace WebApi.Controllers
                     ScanCode = i.ScanCode,
                     Code = i.Code,
                     Action = i.Action,
+                    Quantity = i.Quantity,
                     Timestamp = i.Timestamp,
                     WarehouseId = i.WarehouseId,
                     WarehouseName = i.Warehouse.Name,
@@ -53,6 +54,7 @@ namespace WebApi.Controllers
                 ScanCode = i.ScanCode,
                 Code = i.Code,
                 Action = i.Action,
+                Quantity = i.Quantity,
                 Timestamp = i.Timestamp,
                 WarehouseId = i.WarehouseId,
                 WarehouseName = i.Warehouse.Name,
@@ -76,12 +78,23 @@ namespace WebApi.Controllers
                 ScanCode = dto.ScanCode,
                 Code = dto.Code,
                 Action = dto.Action,
+                Quantity = dto.Quantity,
                 WarehouseId = dto.WarehouseId,
-                UserId = dto.UserId
+                UserId = dto.UserId,
             };
 
             _db.Inventories.Add(entity);
             await _db.SaveChangesAsync();
+
+            // μετά το await _db.SaveChangesAsync() του Inventory:
+            var product = await _db.Products.FirstOrDefaultAsync(p => p.Code == dto.Code);
+            if (product != null)
+            {
+                product.Quantity += dto.Action == "Input" ? dto.Quantity : -dto.Quantity;
+                product.TotalValue = product.Quantity * product.Price;
+                await _db.SaveChangesAsync();
+            }
+
 
             var response = new InventoryDto
             {
@@ -89,6 +102,7 @@ namespace WebApi.Controllers
                 ScanCode = entity.ScanCode,
                 Code = entity.Code,
                 Action = entity.Action,
+                Quantity = entity.Quantity,
                 Timestamp = entity.Timestamp,
                 WarehouseId = entity.WarehouseId,
                 WarehouseName = (await _db.Warehouses.FindAsync(entity.WarehouseId))!.Name,
@@ -111,13 +125,34 @@ namespace WebApi.Controllers
             if (!await _db.Users.AnyAsync(u => u.Id == dto.UserId))
                 return BadRequest($"Invalid userId: {dto.UserId}");
 
+            int oldDelta = entity.Action == "Input"
+                ? entity.Quantity
+                : -entity.Quantity;
+
             entity.ScanCode = dto.ScanCode;
             entity.Code = dto.Code;
             entity.Action = dto.Action;
+            entity.Quantity = dto.Quantity;
             entity.WarehouseId = dto.WarehouseId;
             entity.UserId = dto.UserId;
 
             await _db.SaveChangesAsync();
+
+            int newDelta = dto.Action == "Input"
+                ? dto.Quantity
+                : -dto.Quantity;
+
+            // Εφαρμογή της διαφοράς στο προϊόν
+            var product = await _db.Products
+                .FirstOrDefaultAsync(p => p.Code == dto.Code);
+            if (product != null)
+            {
+                int diff = newDelta - oldDelta;
+                product.Quantity += diff;
+                product.TotalValue = product.Quantity * product.Price;
+                await _db.SaveChangesAsync();
+            }
+
             return NoContent();
         }
 

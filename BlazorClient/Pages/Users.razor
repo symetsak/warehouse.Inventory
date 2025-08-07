@@ -47,8 +47,21 @@ else
     </table>
 }
 
+@* Modal *@
+<BlazorClient.Shared2.ConfirmDialog 
+    Visible="showDeleteDialog"
+    Title="Are you sure to delete ?"
+    Message="@deleteMessage"
+    OnConfirm="ConfirmDelete"
+    OnCancel="CancelDelete" />
+
 @code {
     private List<UserDto>? users;
+
+    // state για το dialog
+    private bool showDeleteDialog;
+    private string deleteMessage = string.Empty;
+    private int pendingDeleteUserId;
 
     protected override async Task OnInitializedAsync()
     {
@@ -58,12 +71,26 @@ else
     void CreateNew() => NavManager.NavigateTo("/user-edit");
     void Edit(int id) => NavManager.NavigateTo($"/user-edit/{id}");
 
+    // Ανοίγει το modal
     async Task Delete(int id)
     {
-        if (await JsRuntime.InvokeAsync<bool>("confirm", "Delete this user?"))
-        {
-            await UserService.DeleteAsync(id);
-            users = (await UserService.GetAllAsync()).ToList();
-        }
+        pendingDeleteUserId = id;
+        var u = users?.FirstOrDefault(x => x.Id == id);
+        deleteMessage = u is null
+            ? "Delete this user?"
+            : $"User \"{u.FullName}\" (@{u.Username})?";
+        showDeleteDialog = true;
+        await Task.CompletedTask;
     }
+
+    // Επιβεβαίωση διαγραφής από το modal
+    private async Task ConfirmDelete()
+    {
+        showDeleteDialog = false;
+        await UserService.DeleteAsync(pendingDeleteUserId);
+        users = (await UserService.GetAllAsync()).ToList();
+    }
+
+    // Ακύρωση/Κλείσιμο modal
+    private void CancelDelete() => showDeleteDialog = false;
 }

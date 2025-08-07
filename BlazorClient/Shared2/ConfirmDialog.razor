@@ -1,0 +1,50 @@
+﻿@* BlazorClient/Shared2/ConfirmDialog.razor *@
+
+@if (Visible)
+{
+    <div class="modal fade show d-block" tabindex="-1" style="background-color: rgba(0,0,0,0.5);">
+        <div class="modal-dialog modal-dialog-centered">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title">@Title</h5>
+                    <button type="button" class="btn-close" @onclick="HandleCancel"></button>
+                </div>
+                <div class="modal-body">
+                    <p>@Message</p>
+                </div>
+                <div class="modal-footer">
+                    <button class="@CancelCssClass" @onclick="HandleCancel">@CancelText</button>
+                    <button class="@ConfirmCssClass" @onclick="HandleConfirm">@ConfirmText</button>
+                </div>
+            </div>
+        </div>
+    </div>
+}
+
+@code {
+    [Parameter] public bool Visible { get; set; }
+    [Parameter] public string Title { get; set; } = "Confirm";
+    [Parameter] public string Message { get; set; } = "";
+
+    // callbacks
+    [Parameter] public EventCallback OnConfirm { get; set; }
+    [Parameter] public EventCallback OnCancel { get; set; }
+
+    // παραμετροποιήσιμα labels/css
+    [Parameter] public string ConfirmText { get; set; } = "Delete";
+    [Parameter] public string CancelText { get; set; } = "Cancel";
+    [Parameter] public string ConfirmCssClass { get; set; } = "btn btn-danger";
+    [Parameter] public string CancelCssClass { get; set; } = "btn btn-secondary";
+
+    private Task HandleConfirm()
+    {
+        Visible = false;               // κλείνουμε το modal
+        return OnConfirm.InvokeAsync(); // ειδοποιούμε τον γονέα
+    }
+
+    private Task HandleCancel()
+    {
+        Visible = false;
+        return OnCancel.InvokeAsync();
+    }
+}

@@ -22,6 +22,7 @@ else
     <table class="table table-striped">
         <thead>
             <tr>
+                <th>Id</th>
                 <th>Name</th>
                 <th>Address</th>
                 <th></th>
@@ -31,6 +32,7 @@ else
             @foreach (var w in warehouses)
             {
                 <tr>
+                    <td>@w.Id</td>
                     <td>@w.Name</td>
                     <td>@w.Address</td>
                     <td>
@@ -43,8 +45,21 @@ else
     </table>
 }
 
+<!-- Confirm dialog -->
+<BlazorClient.Shared2.ConfirmDialog 
+    Visible="showDeleteDialog"
+    Title="Are you sure to delete ?"
+    Message="@deleteMessage"
+    OnConfirm="ConfirmDelete"
+    OnCancel="CancelDelete" />
+
 @code {
     private List<WarehouseDto>? warehouses;
+
+    // dialog state
+    private bool showDeleteDialog;
+    private string deleteMessage = string.Empty;
+    private int pendingDeleteId;
 
     protected override async Task OnInitializedAsync()
     {
@@ -54,12 +69,26 @@ else
     void CreateNew() => NavManager.NavigateTo("/warehouse-edit");
     void Edit(int id) => NavManager.NavigateTo($"/warehouse-edit/{id}");
 
+    // ανοίγει το modal
     async Task Delete(int id)
     {
-        if (await JsRuntime.InvokeAsync<bool>("confirm", "Delete this warehouse?"))
-        {
-            await WarehouseService.DeleteAsync(id);
-            warehouses = (await WarehouseService.GetAllAsync()).ToList();
-        }
+        pendingDeleteId = id;
+        var w = warehouses?.FirstOrDefault(x => x.Id == id);
+        deleteMessage = w is null
+            ? "Delete this warehouse?"
+            : $"Warehouse \"{w.Name}\" (ID {w.Id})?";
+        showDeleteDialog = true;
+        await Task.CompletedTask;
     }
+
+    // επιβεβαίωση από το modal
+    private async Task ConfirmDelete()
+    {
+        showDeleteDialog = false;
+        await WarehouseService.DeleteAsync(pendingDeleteId);
+        warehouses = (await WarehouseService.GetAllAsync()).ToList();
+    }
+
+    // ακύρωση/κλείσιμο modal
+    private void CancelDelete() => showDeleteDialog = false;
 }

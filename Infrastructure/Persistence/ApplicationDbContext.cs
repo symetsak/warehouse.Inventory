@@ -74,7 +74,6 @@ namespace Infrastructure.Persistence
                 entity.HasKey(i => i.Id);
 
                 entity.Property(i => i.ScanCode)
-                      .IsRequired()
                       .HasMaxLength(100);
                 entity.Property(i => i.Code)
                       .IsRequired()
@@ -82,6 +81,8 @@ namespace Infrastructure.Persistence
                 entity.Property(i => i.Action)
                       .IsRequired()
                       .HasMaxLength(10); // “Input” / “Output”
+                entity.Property(i => i.Quantity)
+                      .IsRequired();
                 entity.Property(i => i.Timestamp)
                       .HasDefaultValueSql("GETUTCDATE()");
 

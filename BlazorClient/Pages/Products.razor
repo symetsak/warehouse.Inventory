@@ -85,30 +85,14 @@ else
         </ul>
     </nav>
 }
-@* Bootstrap confirmation modal *@
-@if (showDeleteModal)
-{
-    <div class="modal fade show d-block" tabindex="-1" style="background-color: rgba(0,0,0,0.5);">
-        <div class="modal-dialog modal-dialog-centered">
-            <div class="modal-content">
-                <div class="modal-header">
-                    <h5 class="modal-title">Are you sure to delete this product?</h5>
-                    <button type="button" class="btn-close" @onclick="CancelDelete"></button>
-                </div>
-                <div class="modal-body">
-                    <div class="alert alert-warning">
-                        <strong>@deleteMessage</strong>
-                    </div>
-                </div>
-                <div class="modal-footer">
-                    <button class="btn btn-secondary" @onclick="CancelDelete">Cancel</button>
-                    <button class="btn btn-danger" @onclick="ConfirmDelete">Delete</button>
-                </div>
-            </div>
-        </div>
-    </div>
-}
 
+<!-- Shared confirm dialog -->
+<BlazorClient.Shared2.ConfirmDialog 
+    Visible="showDeleteModal"
+    Title="Are you sure to delete ?"
+    Message="@deleteMessage"
+    OnConfirm="ConfirmDelete"
+    OnCancel="CancelDelete" />
 
 @code {
     private List<ProductDto> products = new();
@@ -164,15 +148,15 @@ else
         if (!isEditing) return;
 
         var dto = new CreateProductDto
-            {
-                Code = formData.Code,
-                Name = formData.Name,
-                Description = formData.Description ?? string.Empty,
-                Unit = formData.Unit,
-                Quantity = formData.Quantity,
-                Price = formData.Price,
-                WarehouseId = formData.WarehouseId
-            };
+        {
+            Code = formData.Code,
+            Name = formData.Name,
+            Description = formData.Description ?? string.Empty,
+            Unit = formData.Unit,
+            Quantity = formData.Quantity,
+            Price = formData.Price,
+            WarehouseId = formData.WarehouseId
+        };
 
         try
         {
@@ -218,11 +202,7 @@ else
             formData = new ProductDto();
     }
 
-    private void CancelDelete()
-    {
-        showDeleteModal = false;
-    }
-
+    private void CancelDelete() => showDeleteModal = false;
 
     private void CancelEdit()
     {
@@ -233,18 +213,18 @@ else
     }
 
     private ProductDto Clone(ProductDto src) => new ProductDto
-        {
-            Id = src.Id,
-            Code = src.Code,
-            Name = src.Name,
-            Description = src.Description,
-            Unit = src.Unit,
-            Quantity = src.Quantity,
-            Price = src.Price,
-            TotalValue = src.TotalValue,
-            WarehouseId = src.WarehouseId,
-            WarehouseName = src.WarehouseName
-        };
+    {
+        Id = src.Id,
+        Code = src.Code,
+        Name = src.Name,
+        Description = src.Description,
+        Unit = src.Unit,
+        Quantity = src.Quantity,
+        Price = src.Price,
+        TotalValue = src.TotalValue,
+        WarehouseId = src.WarehouseId,
+        WarehouseName = src.WarehouseName
+    };
 
     // Sliding window of up to 3 pages, center currentIndex when possible
     private IEnumerable<int> DisplayPages
