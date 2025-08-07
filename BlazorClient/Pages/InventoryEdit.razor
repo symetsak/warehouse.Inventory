@@ -2,6 +2,7 @@
 @using BlazorClient.Services
 @using Shared.DTOs
 @inject IInventoryService InventoryService
+@inject IProductService   ProductService
 @inject NavigationManager NavManager
 
 <h3>@(Id == null ? "Create Inventory" : "Edit Inventory")</h3>
@@ -14,49 +15,83 @@
         <label>ScanCode</label>
         <InputText @bind-Value="model.ScanCode" class="form-control" />
     </div>
+
     <div class="mb-3">
-        <label>Code</label>
-        <InputText @bind-Value="model.Code" class="form-control" />
+        <label>Επιλογή Προϊόντος</label>
+        <InputText @bind-Value="model.Code" list="productList" class="form-control"
+                   placeholder="Γράψε όνομα ή κωδικό..." />
+        <datalist id="productList">
+            @foreach (var p in products
+                        .Where(p =>
+                        string.IsNullOrWhiteSpace(model.Code) ||
+                        p.Name.Contains(model.Code, StringComparison.OrdinalIgnoreCase) ||
+                        p.Code.Contains(model.Code, StringComparison.OrdinalIgnoreCase)))
+            {
+                <option value="@p.Code">@p.Name</option>
+            }
+        </datalist>
+        <ValidationMessage For="() => model.Code" />
+    </div>
+
+    <div class="mb-3">
+        <label>Ενέργεια</label>
+        <InputSelect @bind-Value="model.Action" class="form-select">
+            <option value="Input">Είσοδος</option>
+            <option value="Output">Έξοδος</option>
+        </InputSelect>
+        <ValidationMessage For="() => model.Action" />
+    </div>
+
+    <div class="mb-3">
+        <label>Ποσότητα</label>
+        <InputNumber @bind-Value="model.Quantity" class="form-control" />
+        <ValidationMessage For="() => model.Quantity" />
+    </div>
+
+    <div class="mb-3">
+        <label>Αποθήκη</label>
+        <InputNumber @bind-Value="model.WarehouseId" class="form-control" Disabled="true" />
     </div>
     <div class="mb-3">
-        <label>Action</label>
-        <InputText @bind-Value="model.Action" class="form-control" />
-    </div>
-    <div class="mb-3">
-        <label>WarehouseId</label>
-        <InputNumber @bind-Value="model.WarehouseId" class="form-control" />
-    </div>
-    <div class="mb-3">
-        <label>UserId</label>
-        <InputNumber @bind-Value="model.UserId" class="form-control" />
+        <label>Χρήστης</label>
+        <InputNumber @bind-Value="model.UserId" class="form-control" Disabled="true" />
     </div>
 
     <button type="submit" class="btn btn-primary">Save</button>
-    <button type="button" class="btn btn-secondary ms-2" @onclick='() => NavManager.NavigateTo("/inventory")'>Cancel</button>
+    <button type="button" class="btn btn-secondary ms-2" @onclick='() => NavManager.NavigateTo("/inventory")'> Cancel </button>
 </EditForm>
 
 @code {
-    [Parameter]
-    public int? Id { get; set; }
-
+    [Parameter] public int? Id { get; set; }
     private CreateInventoryDto model = new();
+    private List<ProductDto> products = new();
 
     protected override async Task OnInitializedAsync()
     {
+        // load προϊόντα
+        products = (await ProductService.GetAllAsync()).ToList();
+
         if (Id != null)
         {
             var dto = await InventoryService.GetByIdAsync(Id.Value);
             if (dto != null)
             {
-                model = new CreateInventoryDto
-                {
-                    ScanCode = dto.ScanCode,
-                    Code = dto.Code,
-                    Action = dto.Action,
-                    WarehouseId = dto.WarehouseId,
-                    UserId = dto.UserId
+                model = new CreateInventoryDto {
+                    ScanCode   = dto.ScanCode,
+                    Code       = dto.Code,
+                    Action     = dto.Action,
+                    Quantity   = 0,                // default ή από dto αν είχατε stored
+                    WarehouseId= dto.WarehouseId,
+                    UserId     = dto.UserId
                 };
             }
+        }
+        else
+        {
+            // αν θέλετε default τιμές
+            model.Action     = "Input";
+            model.WarehouseId= /*π.χ. default αποθήκη*/ 1;
+            model.UserId     = /*π.χ. τρέχων χρήστης*/   2;
         }
     }
 

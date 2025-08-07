@@ -27,6 +27,7 @@ else
                 <th>ScanCode</th>
                 <th>Code</th>
                 <th>Action</th>
+                <th>Quantity</th>
                 <th>Timestamp</th>
                 <th>Warehouse</th>
                 <th>User</th>
@@ -40,6 +41,7 @@ else
                     <td>@r.ScanCode</td>
                     <td>@r.Code</td>
                     <td>@r.Action</td>
+                    <td>@r.Quantity</td>
                     <td>@r.Timestamp</td>
                     <td>@r.WarehouseName</td>
                     <td>@r.UserName</td>
@@ -53,20 +55,46 @@ else
     </table>
 }
 
+<BlazorClient.Shared2.ConfirmDialog 
+    Visible="showDeleteDialog"
+    Title="Are you sure to delete ?"
+    Message="@deleteMessage"
+    OnConfirm="ConfirmDelete"
+    OnCancel="CancelDelete" />
+
 @code {
     private List<InventoryDto>? records;
+
+    // state για το dialog
+    private bool showDeleteDialog;
+    private string deleteMessage = string.Empty;
+    private int pendingDeleteId;
 
     protected override async Task OnInitializedAsync()
     {
         records = (await InventoryService.GetAllAsync()).ToList();
     }
 
+    // ανοίγει το modal
     async Task Delete(int id)
     {
-        if (await JsRuntime.InvokeAsync<bool>("confirm", "Delete this record?"))
-        {
-            await InventoryService.DeleteAsync(id);
-            records = (await InventoryService.GetAllAsync()).ToList();
-        }
+        pendingDeleteId = id;
+        var rec = records?.FirstOrDefault(x => x.Id == id);
+        deleteMessage = rec is null
+            ? "Delete this record?"
+            : $"Inventory record #{rec.Id} (Code: {rec.Code})?";
+        showDeleteDialog = true;
+        await Task.CompletedTask;
     }
+
+    // επιβεβαίωση από το modal
+    private async Task ConfirmDelete()
+    {
+        showDeleteDialog = false;
+        await InventoryService.DeleteAsync(pendingDeleteId);
+        records = (await InventoryService.GetAllAsync()).ToList();
+    }
+
+    // ακύρωση/κλείσιμο modal
+    private void CancelDelete() => showDeleteDialog = false;
 }

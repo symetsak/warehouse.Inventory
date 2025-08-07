@@ -4,6 +4,7 @@ using Infrastructure.Persistence;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
 using Microsoft.EntityFrameworkCore.Metadata;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 
 #nullable disable
@@ -11,9 +12,11 @@ using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 namespace Infrastructure.Migrations
 {
     [DbContext(typeof(ApplicationDbContext))]
-    partial class ApplicationDbContextModelSnapshot : ModelSnapshot
+    [Migration("20250807210807_NullableScancodeOnInventory")]
+    partial class NullableScancodeOnInventory
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        /// <inheritdoc />
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder
@@ -39,9 +42,6 @@ namespace Infrastructure.Migrations
                         .IsRequired()
                         .HasMaxLength(50)
                         .HasColumnType("nvarchar(50)");
-
-                    b.Property<int>("Quantity")
-                        .HasColumnType("int");
 
                     b.Property<string>("ScanCode")
                         .HasMaxLength(100)
@@ -72,7 +72,6 @@ namespace Infrastructure.Migrations
                             Id = 1,
                             Action = "Input",
                             Code = "PRD001",
-                            Quantity = 0,
                             ScanCode = "SCN1001",
                             Timestamp = new DateTime(2025, 8, 1, 9, 0, 0, 0, DateTimeKind.Utc),
                             UserId = 1,
@@ -83,7 +82,6 @@ namespace Infrastructure.Migrations
                             Id = 2,
                             Action = "Input",
                             Code = "PRD002",
-                            Quantity = 0,
                             ScanCode = "SCN1002",
                             Timestamp = new DateTime(2025, 8, 1, 10, 0, 0, 0, DateTimeKind.Utc),
                             UserId = 2,
