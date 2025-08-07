@@ -7,14 +7,17 @@
 
 <h3>Products</h3>
 
-<div class="mb-3">
-    <button type="button" class="btn btn-primary me-2" @onclick="AddProduct">Add</button>
-    <button type="button" class="btn btn-secondary me-2" @onclick="ToggleEdit">@(isEditing ? "Cancel" : "Edit")</button>
-    <button type="button" class="btn btn-danger" @onclick="DeleteProduct" disabled="@(products == null || !products.Any())">Delete</button>
-    <button type="button" class="btn btn-success ms-2" @onclick="SaveProduct" disabled="@( !isEditing )">Save</button>
+<div class="mb-3 d-flex gap-2 flex-wrap">
+    <button class="btn btn-primary" @onclick="AddProduct">Add</button>
+    <button class="btn btn-secondary" @onclick="EditProduct" disabled="@(!CanEdit)">Edit</button>
+    <button class="btn btn-danger" @onclick="DeleteProduct" disabled="@(!CanEdit)">Delete</button>
+</div>
+<div class="mb-4 d-flex gap-2 flex-wrap">
+    <button class="btn btn-success" @onclick="SaveProduct" disabled="@(!isEditing)">Save</button>
+    <button class="btn btn-warning" @onclick="CancelEdit" disabled="@(!isEditing)">Cancel</button>
 </div>
 
-@if (products is null)
+@if (products == null)
 {
     <p><em>Loading...</em></p>
 }
@@ -24,151 +27,242 @@ else if (!products.Any())
 }
 else
 {
-    <EditForm Model="formData" class="mb-4">
+    <EditForm Model="formData">
+        <DataAnnotationsValidator />
+        <ValidationSummary />
         <div class="row g-3">
-            <div class="col-md-6">
+            <div class="col-md-4">
                 <label class="form-label">Code</label>
                 <InputText @bind-Value="formData.Code" class="form-control" readonly="@(!isEditing)" />
             </div>
-            <div class="col-md-6">
+            <div class="col-md-4">
                 <label class="form-label">Name</label>
                 <InputText @bind-Value="formData.Name" class="form-control" readonly="@(!isEditing)" />
             </div>
             <div class="col-md-4">
-                <label class="form-label">Quantity</label>
-                <InputNumber @bind-Value="formData.Quantity" class="form-control" readonly="@(!isEditing)" />
+                <label class="form-label">Unit</label>
+                <InputText @bind-Value="formData.Unit" class="form-control" readonly="@(!isEditing)" />
             </div>
-            <div class="col-md-4">
-                <label class="form-label">Price</label>
-                <InputNumber @bind-Value="formData.Price" class="form-control" readonly="@(!isEditing)" />
-            </div>
-            <div class="col-md-4">
-                <label class="form-label">Total</label>
-                <InputNumber @bind-Value="formData.TotalValue" class="form-control" readonly="true" />
-            </div>
+
             <div class="col-md-6">
-                <label class="form-label">Warehouse</label>
-                <InputText @bind-Value="formData.WarehouseName" class="form-control" readonly="true" />
+                <label class="form-label">Description</label>
+                <InputTextArea @bind-Value="formData.Description" class="form-control" readonly="@(!isEditing)" rows="2" />
+            </div>
+
+            <div class="col-md-3">
+                <label class="form-label">Quantity</label>
+                <InputNumber @bind-Value="formData.Quantity" class="form-control" @oninput="ComputeTotal" readonly="@(!isEditing)" />
+            </div>
+            <div class="col-md-3">
+                <label class="form-label">Price</label>
+                <InputNumber @bind-Value="formData.Price" class="form-control" @oninput="ComputeTotal" readonly="@(!isEditing)" />
+            </div>
+            <div class="col-md-3">
+                <label class="form-label">Total</label>
+                <InputNumber @bind-Value="formData.TotalValue" class="form-control" readonly />
+            </div>
+            <div class="col-md-3">
+                <label class="form-label">WarehouseId</label>
+                <InputNumber @bind-Value="formData.WarehouseId" class="form-control" readonly="@(!isEditing)" />
             </div>
         </div>
     </EditForm>
 
     <nav>
-        <ul class="pagination justify-content-center">
-            @for (int i = 0; i < products.Count; i++)
+        <ul class="pagination justify-content-center mt-4 flex-wrap">
+            <li class="page-item @(currentIndex == 0 ? "disabled" : "")">
+                <button class="page-link" @onclick="() => ChangeIndex(currentIndex - 1)" disabled="@(currentIndex == 0)">&lt;</button>
+            </li>
+            @foreach (var i in DisplayPages)
             {
                 <li class="page-item @(i == currentIndex ? "active" : "")">
-                    <button type="button" class="page-link" @onclick="() => ChangeIndex(i)">@(i + 1)</button>
+                    <button class="page-link" @onclick="() => ChangeIndex(i)">@(i + 1)</button>
                 </li>
             }
+            <li class="page-item @(currentIndex >= products.Count - 1 ? "disabled" : "")">
+                <button class="page-link" @onclick="() => ChangeIndex(currentIndex + 1)" disabled="@(currentIndex >= products.Count - 1)">&gt;</button>
+            </li>
         </ul>
     </nav>
 }
+@* Bootstrap confirmation modal *@
+@if (showDeleteModal)
+{
+    <div class="modal fade show d-block" tabindex="-1" style="background-color: rgba(0,0,0,0.5);">
+        <div class="modal-dialog modal-dialog-centered">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title">Are you sure to delete this product?</h5>
+                    <button type="button" class="btn-close" @onclick="CancelDelete"></button>
+                </div>
+                <div class="modal-body">
+                    <div class="alert alert-warning">
+                        <strong>@deleteMessage</strong>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button class="btn btn-secondary" @onclick="CancelDelete">Cancel</button>
+                    <button class="btn btn-danger" @onclick="ConfirmDelete">Delete</button>
+                </div>
+            </div>
+        </div>
+    </div>
+}
+
 
 @code {
-    private List<ProductDto>? products;
-    private ProductDto formData = new();
-    private int currentIndex = 0;
-    private bool isEditing = false;
-    private bool isNew = false;
+    private List<ProductDto> products = new();
+    private ProductDto formData = new ProductDto();
+    private int currentIndex;
+    private bool isEditing;
+    private bool isNew;
+    private ProductDto previousData = new ProductDto();
+    private bool showDeleteModal = false;
+    private string deleteMessage = "";
+
+    private bool CanEdit => products.Count > 0 && !isEditing;
 
     protected override async Task OnInitializedAsync()
     {
         products = (await ProductService.GetAllAsync()).ToList();
         if (products.Any())
-        {
             await ChangeIndex(0);
-        }
     }
 
-    private async Task ChangeIndex(int idx)
+    private async Task ChangeIndex(int index)
     {
-        if (products == null || idx < 0 || idx >= products.Count) return;
-        currentIndex = idx;
-        formData = new ProductDto
-        {
-            Id = products[idx].Id,
-            Code = products[idx].Code,
-            Name = products[idx].Name,
-            Quantity = products[idx].Quantity,
-            Price = products[idx].Price,
-            TotalValue = products[idx].TotalValue,
-            WarehouseName = products[idx].WarehouseName
-        };
+        if (index < 0 || index >= products.Count)
+            return;
+
+        currentIndex = index;
+        formData = Clone(products[index]);
+        previousData = Clone(formData);
         isEditing = false;
         isNew = false;
         await InvokeAsync(StateHasChanged);
     }
 
-    private void ToggleEdit()
-    {
-        if (products == null || !products.Any()) return;
-        isEditing = !isEditing;
-        if (!isEditing && !isNew)
-        {
-            // Revert changes
-#pragma warning disable BL0005
-            _ = ChangeIndex(currentIndex);
-#pragma warning restore BL0005
-        }
-    }
+    private void ComputeTotal(ChangeEventArgs _) => formData.TotalValue = formData.Quantity * formData.Price;
 
     private void AddProduct()
     {
+        previousData = Clone(formData);
+        formData = new ProductDto();
         isNew = true;
         isEditing = true;
-        formData = new ProductDto();
+    }
+
+    private void EditProduct()
+    {
+        if (!CanEdit) return;
+        previousData = Clone(formData);
+        isEditing = true;
     }
 
     private async Task SaveProduct()
     {
-        if (isNew)
-        {
-            var created = await ProductService.CreateAsync(new CreateProductDto
+        if (!isEditing) return;
+
+        var dto = new CreateProductDto
             {
                 Code = formData.Code,
                 Name = formData.Name,
+                Description = formData.Description ?? string.Empty,
+                Unit = formData.Unit,
                 Quantity = formData.Quantity,
                 Price = formData.Price,
-                // Map other required fields if any
-            });
-            products.Add(created);
-            await ChangeIndex(products.Count - 1);
+                WarehouseId = formData.WarehouseId
+            };
+
+        try
+        {
+            if (isNew)
+            {
+                var created = await ProductService.CreateAsync(dto);
+                products = (await ProductService.GetAllAsync()).ToList();
+                await ChangeIndex(products.FindIndex(p => p.Id == created.Id));
+            }
+            else
+            {
+                await ProductService.UpdateAsync(formData.Id, dto);
+                products[currentIndex] = Clone(formData);
+                await ChangeIndex(currentIndex);
+            }
         }
+        catch (Exception ex)
+        {
+            await JsRuntime.InvokeVoidAsync("alert", $"Error saving: {ex.Message}");
+        }
+        finally
+        {
+            isEditing = false;
+            isNew = false;
+        }
+    }
+
+    private void DeleteProduct()
+    {
+        if (!CanEdit) return;
+        deleteMessage = $"{formData.Code} - {formData.Name}";
+        showDeleteModal = true;
+    }
+
+    private async Task ConfirmDelete()
+    {
+        showDeleteModal = false;
+        await ProductService.DeleteAsync(formData.Id);
+        products.RemoveAt(currentIndex);
+        if (products.Any())
+            await ChangeIndex(0);
         else
-        {
-            await ProductService.UpdateAsync(formData.Id, new CreateProductDto
-            {
-                Code = formData.Code,
-                Name = formData.Name,
-                Quantity = formData.Quantity,
-                Price = formData.Price,
-                // Map other required fields if any
-            });
-            products[currentIndex] = formData;
-            await InvokeAsync(StateHasChanged);
-        }
+            formData = new ProductDto();
+    }
+
+    private void CancelDelete()
+    {
+        showDeleteModal = false;
+    }
+
+
+    private void CancelEdit()
+    {
+        if (!isEditing) return;
+        formData = Clone(previousData);
         isEditing = false;
         isNew = false;
     }
 
-    private async Task DeleteProduct()
-    {
-        if (products == null || !products.Any()) return;
-
-        if (await JsRuntime.InvokeAsync<bool>("confirm", "Delete this product?"))
+    private ProductDto Clone(ProductDto src) => new ProductDto
         {
-            await ProductService.DeleteAsync(formData.Id);
-            products.RemoveAt(currentIndex);
-            if (products.Any())
-            {
-                await ChangeIndex(0);
-            }
-            else
-            {
-                formData = new ProductDto();
-                isEditing = false;
-            }
+            Id = src.Id,
+            Code = src.Code,
+            Name = src.Name,
+            Description = src.Description,
+            Unit = src.Unit,
+            Quantity = src.Quantity,
+            Price = src.Price,
+            TotalValue = src.TotalValue,
+            WarehouseId = src.WarehouseId,
+            WarehouseName = src.WarehouseName
+        };
+
+    // Sliding window of up to 3 pages, center currentIndex when possible
+    private IEnumerable<int> DisplayPages
+    {
+        get
+        {
+            int total = products.Count;
+            const int max = 3;
+            if (total == 0) yield break;
+            int half = max / 2;
+            int start = currentIndex - half;
+            if (start < 0) start = 0;
+            if (start + max > total) start = Math.Max(0, total - max);
+            int end = Math.Min(start + max, total);
+            for (int i = start; i < end; i++)
+                yield return i;
         }
     }
+
+    private string GetPageItemClass(int i) => $"page-item {(i == currentIndex ? "active" : "")}";
 }
