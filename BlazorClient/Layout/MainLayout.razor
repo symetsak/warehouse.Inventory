@@ -1,4 +1,9 @@
 ﻿@inherits LayoutComponentBase
+@using Microsoft.AspNetCore.Components.Authorization
+@inject AuthenticationStateProvider AuthStateProvider
+@inject BlazorClient.Services.Auth.AuthService AuthService
+@inject NavigationManager Nav
+
 <div class="page">
     <aside class="sidebar">
         <NavMenu />
@@ -6,14 +11,30 @@
     <main class="main">
         <header class="top-row">
             <div class="topbar-brand">Warehouses Management Studio</div>
-            <nav class="topbar-nav">
-                <a href="register">Register</a>
-                <a href="login">Login</a>
-                <a href="about">About</a>
-            </nav>
+
+            <div class="auth-status" style="margin-left:auto">
+                <AuthorizeView>
+                    <Authorized>
+                        <span>Logged in as <strong>@context.User.Identity!.Name</strong></span>
+                        <button class="btn btn-sm btn-outline-danger ms-2" @onclick="DoLogout">Logout</button>
+                    </Authorized>
+                    <NotAuthorized>
+                        <a class="btn btn-sm btn-outline-primary" href="login">Login</a>
+                    </NotAuthorized>
+                </AuthorizeView>
+            </div>
         </header>
+
         <section class="content">
             @Body
         </section>
     </main>
 </div>
+
+@code {
+    private async Task DoLogout()
+    {
+        await AuthService.LogoutAsync();
+        Nav.NavigateTo("login", forceLoad: true);
+    }
+}
