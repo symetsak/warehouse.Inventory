@@ -3,6 +3,7 @@ using Microsoft.EntityFrameworkCore;
 using Infrastructure.Persistence;
 using Core.Entities;
 using Shared.DTOs;
+using Infrastructure.Security;
 
 namespace WebApi.Controllers
 {
@@ -61,7 +62,7 @@ namespace WebApi.Controllers
                 Mobile = dto.Mobile,
                 Email = dto.Email,
                 Username = dto.Username,
-                Password = dto.Password,
+                PasswordHash = PasswordHasher.Hash(dto.Password),
                 Role = dto.Role
             };
 
@@ -92,7 +93,7 @@ namespace WebApi.Controllers
             entity.Mobile = dto.Mobile;
             entity.Email = dto.Email;
             entity.Username = dto.Username;
-            entity.Password = dto.Password; // ή μην αλλάζεις password εδώ
+            entity.PasswordHash = dto.Password; // ή μην αλλάζεις password εδώ
             entity.Role = dto.Role;
 
             await _db.SaveChangesAsync();

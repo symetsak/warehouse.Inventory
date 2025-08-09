@@ -116,12 +116,15 @@ namespace Infrastructure.Persistence
                 entity.Property(u => u.Username)
                       .IsRequired()
                       .HasMaxLength(50);
-                entity.Property(u => u.Password)
+                entity.Property(u => u.PasswordHash)
                       .IsRequired()
                       .HasMaxLength(200);
                 entity.Property(u => u.Role)
                       .IsRequired()
                       .HasMaxLength(50);
+
+                entity.HasIndex(u => u.Username).IsUnique();
+                entity.HasIndex(u => u.Email).IsUnique();
             });
 
             // --- Seed Warehouses ---
@@ -139,8 +142,8 @@ namespace Infrastructure.Persistence
 
             // --- Seed Users ---
             modelBuilder.Entity<User>().HasData(
-                new User { Id = 1, FullName = "Διαχειριστής", Mobile = "6900000000", Email = "admin@company.com", Username = "admin", Password = "admin123", Role = "Admin" },
-                new User { Id = 2, FullName = "Υπάλληλος", Mobile = "6999999999", Email = "clerk@company.com", Username = "clerk", Password = "clerk123", Role = "Clerk" }
+                new User { Id = 1, FullName = "Διαχειριστής", Mobile = "6900000000", Email = "admin@company.com", Username = "admin", PasswordHash = "$2a$11$wI0a8cQm8o2d3c2rN2m6cO4r4iNw1gE8m7V8gq0q1z8C2oWm2hVWe", Role = "Admin" },
+                new User { Id = 2, FullName = "Υπάλληλος", Mobile = "6999999999", Email = "clerk@company.com", Username = "clerk", PasswordHash = "$2a$11$7tTtKQ4qz2mPZs5zq0m3Me0Qe2v7dXyqNnH2y3b1rTz7oE9xYB7vS", Role = "Clerk" }
             );
 
             // --- (προαιρετικά) Seed Inventory Records ---
