@@ -15,6 +15,8 @@ namespace Infrastructure.Persistence
         public DbSet<Warehouse> Warehouses { get; set; }
         public DbSet<Inventory> Inventories { get; set; }
         public DbSet<User> Users { get; set; }
+        public DbSet<RefreshToken> RefreshTokens { get; set; }
+
 
         protected override void OnModelCreating(ModelBuilder modelBuilder)
         {
@@ -151,7 +153,23 @@ namespace Infrastructure.Persistence
                 new Inventory{ Id = 1,ScanCode = "SCN1001",Code = "PRD001", Action = "Input", WarehouseId = 1, UserId = 1,Timestamp = new DateTime(2025, 8, 1, 9, 0, 0, DateTimeKind.Utc) },
                 new Inventory{ Id = 2, ScanCode = "SCN1002",Code = "PRD002", Action = "Input", WarehouseId = 1, UserId = 2,Timestamp = new DateTime(2025, 8, 1, 10, 0, 0, DateTimeKind.Utc) }
             );
- 
+
+            // --- RefreshToken ---
+            modelBuilder.Entity<RefreshToken>(entity =>
+            {
+                entity.ToTable("RefreshTokens");
+                entity.HasKey(r => r.Id);
+                entity.Property(r => r.Token).IsRequired().HasMaxLength(200);
+                entity.HasIndex(r => r.Token).IsUnique();
+                entity.Property(r => r.Created).IsRequired();
+                entity.Property(r => r.Expires).IsRequired();
+                entity.HasOne(r => r.User)
+                      .WithMany()               // ή WithMany("RefreshTokens") αν θες συλλογή στον User
+                      .HasForeignKey(r => r.UserId)
+                      .OnDelete(DeleteBehavior.Cascade);
+            });
+
+
         }
     }
 }

@@ -4,6 +4,8 @@ using BlazorClient.Services;
 using BlazorClient.Services.Auth;
 using Microsoft.AspNetCore.Components.Web;
 using Microsoft.AspNetCore.Components.WebAssembly.Hosting;
+using System.Net.Http; 
+
 
 namespace BlazorClient
 {
@@ -15,24 +17,51 @@ namespace BlazorClient
             builder.RootComponents.Add<App>("#app");
             builder.RootComponents.Add<HeadOutlet>("head::after");
 
-            // HttpClient για WebApi (πρέπει να τρέχει το API σε ξεχωριστό port)
-            builder.Services.AddScoped(sp =>
-                new HttpClient { BaseAddress = new Uri("https://localhost:7138") }   // webapi base URL
-);
             builder.Services.AddAuthorizationCore();
+
+            // ========================
+            // Register Auth & Handler
+            // ========================
+            builder.Services.AddScoped<AuthenticationStateProvider, CustomAuthStateProvider>();
+            builder.Services.AddScoped<AuthService>();
+            builder.Services.AddScoped<AuthTokenHandler>();
+
+            var apiBase = new Uri("https://localhost:7138"); // βάλε του API σου
+
+            // 1) "Raw" client ΧΩΡΙΣ handler – θα τον χρησιμοποιεί ΜΟΝΟ ο handler για /auth/refresh
+            builder.Services.AddHttpClient("API_NOHANDLER", client =>
+            {
+                client.BaseAddress = apiBase;
+            });
+
+            // 2) Κανονικός client ΜΕ handler – όλα τα calls της εφαρμογής
+            builder.Services.AddHttpClient("API", client =>
+            {
+                client.BaseAddress = apiBase;
+            })
+            .AddHttpMessageHandler<AuthTokenHandler>();
+
+            // Χρησιμοποιούμε το ίδιο για injection χωρίς όνομα
+            builder.Services.AddScoped(sp => sp.GetRequiredService<IHttpClientFactory>().CreateClient("API"));
+
+            // ========================
             // Services DI
+            // ========================
             builder.Services.AddScoped<IProductService, ProductService>();
             builder.Services.AddScoped<IWarehouseService, WarehouseService>();
             builder.Services.AddScoped<IUserService, UserService>();
             builder.Services.AddScoped<IInventoryService, InventoryService>();
-            builder.Services.AddScoped<AuthenticationStateProvider, CustomAuthStateProvider>();
-            builder.Services.AddScoped<AuthService>();
 
+            // ========================
+            // Εκκίνηση host
+            // ========================
             var host = builder.Build();
-            // αν υπάρχει token στο localStorage, βάλε το Authorization header
-            await host.Services.GetRequiredService<AuthService>().TryAttachTokenAsync();
+
+            // Προσπάθησε να επισυνάψεις / ανανεώσεις το token στην εκκίνηση
+            await host.Services.GetRequiredService<AuthService>().TryRefreshAsync();
 
             await host.RunAsync();
         }
     }
 }
+

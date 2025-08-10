@@ -1,6 +1,6 @@
-﻿using Microsoft.AspNetCore.Components.Authorization;
-using System.Net.Http.Headers;
+﻿using System.Net.Http.Headers;
 using System.Net.Http.Json;
+using Microsoft.AspNetCore.Components.Authorization;
 using Microsoft.JSInterop;
 
 namespace BlazorClient.Services.Auth
@@ -11,9 +11,13 @@ namespace BlazorClient.Services.Auth
         private readonly IJSRuntime _js;
         private readonly CustomAuthStateProvider _authStateProvider;
 
+        // storage keys
         private const string TokenKey = "wi_access_token";
         private const string ExpKey = "wi_access_expires";
         private const string UserKey = "wi_user";
+
+        private const string RefreshKey = "wi_refresh_token";
+        private const string RefreshExp = "wi_refresh_expires";
 
         public AuthService(HttpClient http, IJSRuntime js, AuthenticationStateProvider authStateProvider)
         {
@@ -22,9 +26,21 @@ namespace BlazorClient.Services.Auth
             _authStateProvider = (CustomAuthStateProvider)authStateProvider;
         }
 
+        // ===== DTOs MATCHING API =====
         public record LoginRequest(string Username, string Password);
-        public record AuthResponse(string AccessToken, DateTime ExpiresAt, string UserName, string Role, string FullName);
+        public record AuthResponse(
+            string AccessToken,
+            DateTime ExpiresAt,
+            string UserName,
+            string Role,
+            string FullName,
+            string RefreshToken,
+            DateTime RefreshExpiresAt
+        );
 
+        public record RefreshRequest(string RefreshToken);
+
+        // ===== LOGIN =====
         public async Task<bool> LoginAsync(string username, string password)
         {
             var res = await _http.PostAsJsonAsync("api/Auth/login", new LoginRequest(username, password));
@@ -33,42 +49,96 @@ namespace BlazorClient.Services.Auth
             var data = await res.Content.ReadFromJsonAsync<AuthResponse>();
             if (data is null || string.IsNullOrWhiteSpace(data.AccessToken)) return false;
 
+            // store access
+            await _js.InvokeVoidAsync("localStorage.setItem", TokenKey, data.AccessToken);
             await _js.InvokeVoidAsync("localStorage.setItem", ExpKey, data.ExpiresAt.ToString("o"));
             await _js.InvokeVoidAsync("localStorage.setItem", UserKey, data.UserName);
 
-            // αποθήκευση + ενημέρωση auth state
+            // store refresh
+            await _js.InvokeVoidAsync("localStorage.setItem", RefreshKey, data.RefreshToken);
+            await _js.InvokeVoidAsync("localStorage.setItem", RefreshExp, data.RefreshExpiresAt.ToString("o"));
+
+            // set auth header + notify UI
+            _http.DefaultRequestHeaders.Authorization =
+                new AuthenticationHeaderValue("Bearer", data.AccessToken);
             await _authStateProvider.SetTokenAsync(data.AccessToken);
 
-            // βάλε header για HttpClient
-            _http.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", data.AccessToken);
             return true;
         }
 
+        // ===== LOGOUT =====
         public async Task LogoutAsync()
         {
+            try
+            {
+                var rt = await _js.InvokeAsync<string?>("localStorage.getItem", RefreshKey);
+                if (!string.IsNullOrWhiteSpace(rt))
+                    await _http.PostAsJsonAsync("api/Auth/logout", new RefreshRequest(rt));
+            }
+            catch { /* swallow in client logout */ }
+
+            await _js.InvokeVoidAsync("localStorage.removeItem", TokenKey);
             await _js.InvokeVoidAsync("localStorage.removeItem", ExpKey);
             await _js.InvokeVoidAsync("localStorage.removeItem", UserKey);
-            await _authStateProvider.SetTokenAsync(null);
+            await _js.InvokeVoidAsync("localStorage.removeItem", RefreshKey);
+            await _js.InvokeVoidAsync("localStorage.removeItem", RefreshExp);
+
             _http.DefaultRequestHeaders.Authorization = null;
+            await _authStateProvider.SetTokenAsync(null);
+        }
+
+        // ===== ON APP START (ή πριν από κάθε call με handler) =====
+        public async Task<bool> TryRefreshAsync()
+        {
+            var token = await _js.InvokeAsync<string?>("localStorage.getItem", TokenKey);
+            var expIso = await _js.InvokeAsync<string?>("localStorage.getItem", ExpKey);
+            var rt = await _js.InvokeAsync<string?>("localStorage.getItem", RefreshKey);
+            var rtExpIso = await _js.InvokeAsync<string?>("localStorage.getItem", RefreshExp);
+
+            // Αν το access token είναι ακόμα έγκυρο
+            if (!string.IsNullOrWhiteSpace(token) &&
+                DateTime.TryParse(expIso, null, System.Globalization.DateTimeStyles.RoundtripKind, out var accessExp) &&
+                DateTime.UtcNow < accessExp)
+            {
+                _http.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", token);
+                await _authStateProvider.SetTokenAsync(token);
+                return true;
+            }
+
+            // Διαφορετικά, δοκίμασε refresh
+            if (string.IsNullOrWhiteSpace(rt) ||
+                !DateTime.TryParse(rtExpIso, null, System.Globalization.DateTimeStyles.RoundtripKind, out var rtExp) ||
+                DateTime.UtcNow >= rtExp)
+            {
+                await LogoutAsync();
+                return false;
+            }
+
+            var resp = await _http.PostAsJsonAsync("api/Auth/refresh", new RefreshRequest(rt));
+            if (!resp.IsSuccessStatusCode)
+            {
+                await LogoutAsync();
+                return false;
+            }
+
+            var data = await resp.Content.ReadFromJsonAsync<AuthResponse>();
+            if (data is null) { await LogoutAsync(); return false; }
+
+            // store νέα access/refresh
+            await _js.InvokeVoidAsync("localStorage.setItem", TokenKey, data.AccessToken);
+            await _js.InvokeVoidAsync("localStorage.setItem", ExpKey, data.ExpiresAt.ToString("o"));
+            await _js.InvokeVoidAsync("localStorage.setItem", RefreshKey, data.RefreshToken);
+            await _js.InvokeVoidAsync("localStorage.setItem", RefreshExp, data.RefreshExpiresAt.ToString("o"));
+
+            _http.DefaultRequestHeaders.Authorization =
+                new AuthenticationHeaderValue("Bearer", data.AccessToken);
+            await _authStateProvider.SetTokenAsync(data.AccessToken);
+            return true;
         }
 
         public async Task TryAttachTokenAsync()
         {
-            var token = await _js.InvokeAsync<string?>("localStorage.getItem", TokenKey);
-            var expIso = await _js.InvokeAsync<string?>("localStorage.getItem", ExpKey);
-            if (string.IsNullOrWhiteSpace(token) || string.IsNullOrWhiteSpace(expIso)) return;
-
-            if (DateTime.TryParse(expIso, null, System.Globalization.DateTimeStyles.RoundtripKind, out var expUtc)
-                && DateTime.UtcNow < expUtc)
-            {
-                _http.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", token);
-                // ενημέρωσε και το auth state (σε περίπτωση hard refresh)
-                await _authStateProvider.SetTokenAsync(token);
-            }
-            else
-            {
-                await LogoutAsync();
-            }
+            _ = await TryRefreshAsync();
         }
     }
 }
