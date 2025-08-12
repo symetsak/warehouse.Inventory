@@ -13,15 +13,26 @@ public class JwtService : IJwtService
 
     public string CreateToken(int userId, string username, string role, string? fullName = null, string? email = null)
     {
+        // 1) Μην κάνεις αυτόματα remap ονομάτων claims
+        JwtSecurityTokenHandler.DefaultOutboundClaimTypeMap.Clear();
+
         var claims = new List<Claim>
         {
             new(JwtRegisteredClaimNames.Sub, userId.ToString()),
             new(JwtRegisteredClaimNames.UniqueName, username),
+
+            // Name / Role όπως τα περιμένει το ASP.NET
             new(ClaimTypes.Name, username),
-            new(ClaimTypes.Role, role)
+            new(ClaimTypes.Role, role),
+
+            // 2) καθαρό "role" για συμβατότητα / ευκολότερο debug (jwt.io)
+            new("role", role)
         };
-        if (!string.IsNullOrWhiteSpace(fullName)) claims.Add(new("full_name", fullName));
-        if (!string.IsNullOrWhiteSpace(email)) claims.Add(new(JwtRegisteredClaimNames.Email, email));
+
+        if (!string.IsNullOrWhiteSpace(fullName))
+            claims.Add(new("full_name", fullName));
+        if (!string.IsNullOrWhiteSpace(email))
+            claims.Add(new(JwtRegisteredClaimNames.Email, email));
 
         var key = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(_opt.Key));
         var creds = new SigningCredentials(key, SecurityAlgorithms.HmacSha256);

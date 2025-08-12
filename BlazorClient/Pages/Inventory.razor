@@ -1,15 +1,21 @@
 ﻿@page "/inventory"
+@attribute [Authorize]
 @using BlazorClient.Services
+@using Microsoft.AspNetCore.Authorization
 @using Shared.DTOs
+@using Microsoft.AspNetCore.Components.Authorization
 @inject IInventoryService InventoryService
 @inject NavigationManager NavManager
 @inject IJSRuntime JsRuntime
 
 <h3>Inventory Records</h3>
 
-<button class="btn btn-primary mb-3" @onclick='() => NavManager.NavigateTo("/inventory-edit")'>
-    Create New Inventory
-</button>
+<!-- Create: επιτρέπεται σε Admin & Employee -->
+<AuthorizeView Roles="Admin,Employee">
+    <button class="btn btn-primary mb-3" @onclick='() => NavManager.NavigateTo("/inventory-edit")'>
+        Create New Inventory
+    </button>
+</AuthorizeView>
 
 @if (records is null)
 {
@@ -31,7 +37,13 @@ else
                 <th>Timestamp</th>
                 <th>Warehouse</th>
                 <th>User</th>
-                <th></th>
+
+                <!-- Στήλη ενεργειών φαίνεται μόνο σε Admin -->
+                <AuthorizeView Roles="Admin">
+                    <Authorized>
+                        <th></th>
+                    </Authorized>
+                </AuthorizeView>
             </tr>
         </thead>
         <tbody>
@@ -45,16 +57,26 @@ else
                     <td>@r.Timestamp</td>
                     <td>@r.WarehouseName</td>
                     <td>@r.UserName</td>
-                    <td>
-                        <button class="btn btn-sm btn-secondary me-1" @onclick='() => NavManager.NavigateTo($"/inventory-edit/{r.Id}")'>Edit</button>
-                        <button class="btn btn-sm btn-danger" @onclick="() => Delete(r.Id)">Delete</button>
-                    </td>
+
+                    <!-- Edit/Delete: μόνο Admin -->
+                    <AuthorizeView Roles="Admin">
+                        <Authorized>
+                            <td>
+                                <button class="btn btn-sm btn-secondary me-1"
+                                        @onclick='() => NavManager.NavigateTo($"/inventory-edit/{r.Id}")'>
+                                    Edit
+                                </button>
+                                <button class="btn btn-sm btn-danger" @onclick="() => Delete(r.Id)">Delete</button>
+                            </td>
+                        </Authorized>
+                    </AuthorizeView>
                 </tr>
             }
         </tbody>
     </table>
 }
 
+<!-- Confirm dialog -->
 <BlazorClient.Shared2.ConfirmDialog 
     Visible="showDeleteDialog"
     Title="Are you sure to delete ?"
@@ -65,7 +87,7 @@ else
 @code {
     private List<InventoryDto>? records;
 
-    // state για το dialog
+    // dialog state
     private bool showDeleteDialog;
     private string deleteMessage = string.Empty;
     private int pendingDeleteId;
@@ -75,7 +97,6 @@ else
         records = (await InventoryService.GetAllAsync()).ToList();
     }
 
-    // ανοίγει το modal
     async Task Delete(int id)
     {
         pendingDeleteId = id;
@@ -87,14 +108,12 @@ else
         await Task.CompletedTask;
     }
 
-    // επιβεβαίωση από το modal
     private async Task ConfirmDelete()
     {
         showDeleteDialog = false;
-        await InventoryService.DeleteAsync(pendingDeleteId);
+        await InventoryService.DeleteAsync(pendingDeleteId); // θα κοπεί από API για Employee (403)
         records = (await InventoryService.GetAllAsync()).ToList();
     }
 
-    // ακύρωση/κλείσιμο modal
     private void CancelDelete() => showDeleteDialog = false;
 }

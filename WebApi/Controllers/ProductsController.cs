@@ -6,9 +6,11 @@ using Microsoft.EntityFrameworkCore;
 using Infrastructure.Persistence;
 using Core.Entities;
 using Shared.DTOs;
+using Microsoft.AspNetCore.Authorization;
 
 namespace WebApi.Controllers
 {
+    [Authorize]
     [ApiController]
     [Route("api/[controller]")]
     public class ProductsController : ControllerBase
@@ -70,6 +72,7 @@ namespace WebApi.Controllers
         }
 
         // POST: api/Products
+        [Authorize(Roles = "Admin")]
         [HttpPost]
         public async Task<ActionResult<ProductDto>> Create(CreateProductDto dto)
         {
@@ -107,6 +110,7 @@ namespace WebApi.Controllers
         }
 
         // PUT: api/Products/5
+        [Authorize(Roles = "Admin")]
         [HttpPut("{id:int}")]
         public async Task<IActionResult> Update(int id, CreateProductDto dto)
         {
@@ -143,6 +147,7 @@ namespace WebApi.Controllers
         }
 
         // DELETE: api/Products/5
+        [Authorize(Roles = "Admin")]
         [HttpDelete("{id:int}")]
         public async Task<IActionResult> Delete(int id)
         {

@@ -1,13 +1,19 @@
 ﻿@page "/warehouses"
+@attribute [Authorize]  
 @using BlazorClient.Services
+@using Microsoft.AspNetCore.Authorization
 @using Shared.DTOs
+@using Microsoft.AspNetCore.Components.Authorization
 @inject IWarehouseService WarehouseService
 @inject NavigationManager NavManager
 @inject IJSRuntime JsRuntime
 
 <h3>Warehouses</h3>
 
-<button class="btn btn-primary mb-3" @onclick="CreateNew">Create New Warehouse</button>
+<!-- Create: μόνο Admin -->
+<AuthorizeView Roles="Admin">
+    <button class="btn btn-primary mb-3" @onclick="CreateNew">Create New Warehouse</button>
+</AuthorizeView>
 
 @if (warehouses is null)
 {
@@ -25,7 +31,16 @@ else
                 <th>Id</th>
                 <th>Name</th>
                 <th>Address</th>
-                <th></th>
+
+                <!-- header για actions: μόνο Admin -->
+                <AuthorizeView Roles="Admin">
+                    <Authorized>
+                        <th></th>
+                    </Authorized>
+                    <NotAuthorized>
+                        @* για Employee δεν δείχνουμε στήλη actions *@
+                    </NotAuthorized>
+                </AuthorizeView>
             </tr>
         </thead>
         <tbody>
@@ -35,10 +50,16 @@ else
                     <td>@w.Id</td>
                     <td>@w.Name</td>
                     <td>@w.Address</td>
-                    <td>
-                        <button class="btn btn-sm btn-secondary me-1" @onclick="() => Edit(w.Id)">Edit</button>
-                        <button class="btn btn-sm btn-danger" @onclick="() => Delete(w.Id)">Delete</button>
-                    </td>
+
+                    <!-- κουμπιά Edit/Delete: μόνο Admin -->
+                    <AuthorizeView Roles="Admin">
+                        <Authorized>
+                            <td>
+                                <button class="btn btn-sm btn-secondary me-1" @onclick="() => Edit(w.Id)">Edit</button>
+                                <button class="btn btn-sm btn-danger" @onclick="() => Delete(w.Id)">Delete</button>
+                            </td>
+                        </Authorized>
+                    </AuthorizeView>
                 </tr>
             }
         </tbody>

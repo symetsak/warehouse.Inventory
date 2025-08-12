@@ -1,5 +1,6 @@
 ﻿using System.Net.Http.Headers;
 using System.Net.Http.Json;
+using System.Security.Claims;
 using Microsoft.AspNetCore.Components.Authorization;
 using Microsoft.JSInterop;
 
@@ -15,7 +16,6 @@ namespace BlazorClient.Services.Auth
         private const string TokenKey = "wi_access_token";
         private const string ExpKey = "wi_access_expires";
         private const string UserKey = "wi_user";
-
         private const string RefreshKey = "wi_refresh_token";
         private const string RefreshExp = "wi_refresh_expires";
 
@@ -26,7 +26,7 @@ namespace BlazorClient.Services.Auth
             _authStateProvider = (CustomAuthStateProvider)authStateProvider;
         }
 
-        // ===== DTOs MATCHING API =====
+        // ===== DTOs matching API =====
         public record LoginRequest(string Username, string Password);
         public record AuthResponse(
             string AccessToken,
@@ -37,8 +37,10 @@ namespace BlazorClient.Services.Auth
             string RefreshToken,
             DateTime RefreshExpiresAt
         );
-
         public record RefreshRequest(string RefreshToken);
+
+        // ===== Public shape for current user =====
+        public record CurrentUser(int Id, string FullName, string? Role);
 
         // ===== LOGIN =====
         public async Task<bool> LoginAsync(string username, string password)
@@ -87,7 +89,7 @@ namespace BlazorClient.Services.Auth
             await _authStateProvider.SetTokenAsync(null);
         }
 
-        // ===== ON APP START (ή πριν από κάθε call με handler) =====
+        // ===== REFRESH / ATTACH =====
         public async Task<bool> TryRefreshAsync()
         {
             var token = await _js.InvokeAsync<string?>("localStorage.getItem", TokenKey);
@@ -95,7 +97,6 @@ namespace BlazorClient.Services.Auth
             var rt = await _js.InvokeAsync<string?>("localStorage.getItem", RefreshKey);
             var rtExpIso = await _js.InvokeAsync<string?>("localStorage.getItem", RefreshExp);
 
-            // Αν το access token είναι ακόμα έγκυρο
             if (!string.IsNullOrWhiteSpace(token) &&
                 DateTime.TryParse(expIso, null, System.Globalization.DateTimeStyles.RoundtripKind, out var accessExp) &&
                 DateTime.UtcNow < accessExp)
@@ -105,7 +106,6 @@ namespace BlazorClient.Services.Auth
                 return true;
             }
 
-            // Διαφορετικά, δοκίμασε refresh
             if (string.IsNullOrWhiteSpace(rt) ||
                 !DateTime.TryParse(rtExpIso, null, System.Globalization.DateTimeStyles.RoundtripKind, out var rtExp) ||
                 DateTime.UtcNow >= rtExp)
@@ -115,16 +115,11 @@ namespace BlazorClient.Services.Auth
             }
 
             var resp = await _http.PostAsJsonAsync("api/Auth/refresh", new RefreshRequest(rt));
-            if (!resp.IsSuccessStatusCode)
-            {
-                await LogoutAsync();
-                return false;
-            }
+            if (!resp.IsSuccessStatusCode) { await LogoutAsync(); return false; }
 
             var data = await resp.Content.ReadFromJsonAsync<AuthResponse>();
             if (data is null) { await LogoutAsync(); return false; }
 
-            // store νέα access/refresh
             await _js.InvokeVoidAsync("localStorage.setItem", TokenKey, data.AccessToken);
             await _js.InvokeVoidAsync("localStorage.setItem", ExpKey, data.ExpiresAt.ToString("o"));
             await _js.InvokeVoidAsync("localStorage.setItem", RefreshKey, data.RefreshToken);
@@ -136,9 +131,30 @@ namespace BlazorClient.Services.Auth
             return true;
         }
 
-        public async Task TryAttachTokenAsync()
+        public async Task TryAttachTokenAsync() => _ = await TryRefreshAsync();
+
+        // ===== CURRENT USER from claims =====
+        public async Task<CurrentUser?> GetCurrentUserAsync()
         {
-            _ = await TryRefreshAsync();
+            var state = await _authStateProvider.GetAuthenticationStateAsync();
+            var principal = state.User;
+            if (principal?.Identity?.IsAuthenticated != true)
+                return null;
+
+            var idClaim = principal.FindFirst(ClaimTypes.NameIdentifier) ?? principal.FindFirst("sub");
+            var ok = int.TryParse(idClaim?.Value, out var uid);
+            if (!ok) return null;
+
+            var fullName =
+                principal.FindFirst("full_name")?.Value ??
+                principal.FindFirst(ClaimTypes.Name)?.Value ??
+                principal.Identity?.Name ?? string.Empty;
+
+            var role =
+                principal.FindFirst(ClaimTypes.Role)?.Value ??
+                principal.FindFirst("role")?.Value;
+
+            return new CurrentUser(uid, fullName, role);
         }
     }
 }
