@@ -1,21 +1,29 @@
 ﻿@page "/products"
+@attribute [Authorize]
+
 @using BlazorClient.Services
+@using Microsoft.AspNetCore.Authorization
 @using Shared.DTOs
 @using Microsoft.AspNetCore.Components.Forms
+@using Microsoft.AspNetCore.Components.Authorization
+
 @inject IProductService ProductService
 @inject IJSRuntime JsRuntime
 
 <h3>Products</h3>
 
-<div class="mb-3 d-flex gap-2 flex-wrap">
-    <button class="btn btn-primary" @onclick="AddProduct">Add</button>
-    <button class="btn btn-secondary" @onclick="EditProduct" disabled="@(!CanEdit)">Edit</button>
-    <button class="btn btn-danger" @onclick="DeleteProduct" disabled="@(!CanEdit)">Delete</button>
-</div>
-<div class="mb-4 d-flex gap-2 flex-wrap">
-    <button class="btn btn-success" @onclick="SaveProduct" disabled="@(!isEditing)">Save</button>
-    <button class="btn btn-warning" @onclick="CancelEdit" disabled="@(!isEditing)">Cancel</button>
-</div>
+<!-- Admin‑only action buttons -->
+<AuthorizeView Roles="Admin">
+    <div class="mb-3 d-flex gap-2 flex-wrap">
+        <button class="btn btn-primary" @onclick="AddProduct">Add</button>
+        <button class="btn btn-secondary" @onclick="EditProduct" disabled="@(!CanEdit)">Edit</button>
+        <button class="btn btn-danger" @onclick="DeleteProduct" disabled="@(!CanEdit)">Delete</button>
+    </div>
+    <div class="mb-4 d-flex gap-2 flex-wrap">
+        <button class="btn btn-success" @onclick="SaveProduct" disabled="@(!CanSave)">Save</button>
+        <button class="btn btn-warning" @onclick="CancelEdit" disabled="@(!isEditing)">Cancel</button>
+    </div>
+</AuthorizeView>
 
 @if (products == null)
 {
@@ -33,29 +41,29 @@ else
         <div class="row g-3">
             <div class="col-md-4">
                 <label class="form-label">Code</label>
-                <InputText @bind-Value="formData.Code" class="form-control" readonly="@(!isEditing)" />
+                <InputText @bind-Value="formData.Code" class="form-control" readonly="@(!(isAdmin && isEditing))" />
             </div>
             <div class="col-md-4">
                 <label class="form-label">Name</label>
-                <InputText @bind-Value="formData.Name" class="form-control" readonly="@(!isEditing)" />
+                <InputText @bind-Value="formData.Name" class="form-control" readonly="@(!(isAdmin && isEditing))" />
             </div>
             <div class="col-md-4">
                 <label class="form-label">Unit</label>
-                <InputText @bind-Value="formData.Unit" class="form-control" readonly="@(!isEditing)" />
+                <InputText @bind-Value="formData.Unit" class="form-control" readonly="@(!(isAdmin && isEditing))" />
             </div>
 
             <div class="col-md-6">
                 <label class="form-label">Description</label>
-                <InputTextArea @bind-Value="formData.Description" class="form-control" readonly="@(!isEditing)" rows="2" />
+                <InputTextArea @bind-Value="formData.Description" class="form-control" rows="2" readonly="@(!(isAdmin && isEditing))" />
             </div>
 
             <div class="col-md-3">
                 <label class="form-label">Quantity</label>
-                <InputNumber @bind-Value="formData.Quantity" class="form-control" @oninput="ComputeTotal" readonly="@(!isEditing)" />
+                <InputNumber @bind-Value="formData.Quantity" class="form-control" @oninput="ComputeTotal" readonly="@(!(isAdmin && isEditing))" />
             </div>
             <div class="col-md-3">
                 <label class="form-label">Price</label>
-                <InputNumber @bind-Value="formData.Price" class="form-control" @oninput="ComputeTotal" readonly="@(!isEditing)" />
+                <InputNumber @bind-Value="formData.Price" class="form-control" @oninput="ComputeTotal" readonly="@(!(isAdmin && isEditing))" />
             </div>
             <div class="col-md-3">
                 <label class="form-label">Total</label>
@@ -63,7 +71,7 @@ else
             </div>
             <div class="col-md-3">
                 <label class="form-label">WarehouseId</label>
-                <InputNumber @bind-Value="formData.WarehouseId" class="form-control" readonly="@(!isEditing)" />
+                <InputNumber @bind-Value="formData.WarehouseId" class="form-control" readonly="@(!(isAdmin && isEditing))" />
             </div>
         </div>
     </EditForm>
@@ -87,14 +95,18 @@ else
 }
 
 <!-- Shared confirm dialog -->
-<BlazorClient.Shared2.ConfirmDialog 
-    Visible="showDeleteModal"
-    Title="Are you sure to delete ?"
-    Message="@deleteMessage"
-    OnConfirm="ConfirmDelete"
-    OnCancel="CancelDelete" />
+<BlazorClient.Shared2.ConfirmDialog Visible="showDeleteModal"
+                                    Title="Are you sure to delete ?"
+                                    Message="@deleteMessage"
+                                    OnConfirm="ConfirmDelete"
+                                    OnCancel="CancelDelete" />
 
 @code {
+    // ---- auth ----
+    [CascadingParameter] private Task<AuthenticationState> AuthStateTask { get; set; } = default!;
+    private bool isAdmin;
+
+    // ---- state ----
     private List<ProductDto> products = new();
     private ProductDto formData = new ProductDto();
     private int currentIndex;
@@ -104,10 +116,15 @@ else
     private bool showDeleteModal = false;
     private string deleteMessage = "";
 
-    private bool CanEdit => products.Count > 0 && !isEditing;
+    // μόνο Admin επιτρέπει edit/save/delete
+    private bool CanEdit => products.Count > 0 && !isEditing && isAdmin;
+    private bool CanSave => isEditing && isAdmin;
 
     protected override async Task OnInitializedAsync()
     {
+        var user = (await AuthStateTask).User;
+        isAdmin = user.IsInRole("Admin");
+
         products = (await ProductService.GetAllAsync()).ToList();
         if (products.Any())
             await ChangeIndex(0);
@@ -130,6 +147,7 @@ else
 
     private void AddProduct()
     {
+        if (!isAdmin) return;
         previousData = Clone(formData);
         formData = new ProductDto();
         isNew = true;
@@ -145,18 +163,18 @@ else
 
     private async Task SaveProduct()
     {
-        if (!isEditing) return;
+        if (!CanSave) return;
 
         var dto = new CreateProductDto
-        {
-            Code = formData.Code,
-            Name = formData.Name,
-            Description = formData.Description ?? string.Empty,
-            Unit = formData.Unit,
-            Quantity = formData.Quantity,
-            Price = formData.Price,
-            WarehouseId = formData.WarehouseId
-        };
+            {
+                Code = formData.Code,
+                Name = formData.Name,
+                Description = formData.Description ?? string.Empty,
+                Unit = formData.Unit,
+                Quantity = formData.Quantity,
+                Price = formData.Price,
+                WarehouseId = formData.WarehouseId
+            };
 
         try
         {
@@ -194,6 +212,7 @@ else
     private async Task ConfirmDelete()
     {
         showDeleteModal = false;
+        if (!isAdmin) return;
         await ProductService.DeleteAsync(formData.Id);
         products.RemoveAt(currentIndex);
         if (products.Any())
@@ -213,18 +232,18 @@ else
     }
 
     private ProductDto Clone(ProductDto src) => new ProductDto
-    {
-        Id = src.Id,
-        Code = src.Code,
-        Name = src.Name,
-        Description = src.Description,
-        Unit = src.Unit,
-        Quantity = src.Quantity,
-        Price = src.Price,
-        TotalValue = src.TotalValue,
-        WarehouseId = src.WarehouseId,
-        WarehouseName = src.WarehouseName
-    };
+        {
+            Id = src.Id,
+            Code = src.Code,
+            Name = src.Name,
+            Description = src.Description,
+            Unit = src.Unit,
+            Quantity = src.Quantity,
+            Price = src.Price,
+            TotalValue = src.TotalValue,
+            WarehouseId = src.WarehouseId,
+            WarehouseName = src.WarehouseName
+        };
 
     // Sliding window of up to 3 pages, center currentIndex when possible
     private IEnumerable<int> DisplayPages

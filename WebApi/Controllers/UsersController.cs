@@ -4,6 +4,7 @@ using Infrastructure.Persistence;
 using Core.Entities;
 using Shared.DTOs;
 using Infrastructure.Security;
+using Microsoft.AspNetCore.Authorization;
 
 namespace WebApi.Controllers
 {
@@ -52,6 +53,7 @@ namespace WebApi.Controllers
         }
 
         // POST: api/Users
+        [Authorize(Roles = "Admin")]
         [HttpPost]
         public async Task<ActionResult<UserDto>> Create(CreateUserDto dto)
         {
@@ -83,6 +85,7 @@ namespace WebApi.Controllers
         }
 
         // PUT: api/Users/5
+        [Authorize(Roles = "Admin")]
         [HttpPut("{id:int}")]
         public async Task<IActionResult> Update(int id, CreateUserDto dto)
         {
@@ -101,6 +104,7 @@ namespace WebApi.Controllers
         }
 
         // DELETE: api/Users/5
+        [Authorize(Roles = "Admin")]
         [HttpDelete("{id:int}")]
         public async Task<IActionResult> Delete(int id)
         {

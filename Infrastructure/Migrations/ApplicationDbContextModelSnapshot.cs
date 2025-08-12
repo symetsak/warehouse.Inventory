@@ -275,11 +275,11 @@ namespace Infrastructure.Migrations
                         new
                         {
                             Id = 2,
-                            Email = "clerk@company.com",
+                            Email = "employee@company.com",
                             FullName = "Υπάλληλος",
                             Mobile = "6999999999",
                             PasswordHash = "$2a$11$7tTtKQ4qz2mPZs5zq0m3Me0Qe2v7dXyqNnH2y3b1rTz7oE9xYB7vS",
-                            Role = "Clerk",
+                            Role = "Employee",
                             Username = "clerk"
                         });
                 });

@@ -3,6 +3,7 @@ using Microsoft.EntityFrameworkCore;
 using Infrastructure.Persistence;
 using Core.Entities;
 using Shared.DTOs;
+using Microsoft.AspNetCore.Authorization;
 
 namespace WebApi.Controllers
 {
@@ -114,6 +115,7 @@ namespace WebApi.Controllers
         }
 
         // PUT: api/Inventory/5
+        [Authorize(Roles = "Admin")]
         [HttpPut("{id:int}")]
         public async Task<IActionResult> Update(int id, CreateInventoryDto dto)
         {
@@ -157,6 +159,7 @@ namespace WebApi.Controllers
         }
 
         // DELETE: api/Inventory/5
+        [Authorize(Roles = "Admin")]
         [HttpDelete("{id:int}")]
         public async Task<IActionResult> Delete(int id)
         {

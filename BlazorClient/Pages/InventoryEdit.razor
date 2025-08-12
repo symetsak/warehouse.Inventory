@@ -1,9 +1,13 @@
 ﻿@page "/inventory-edit/{Id:int?}"
+@attribute [Authorize]
 @using BlazorClient.Services
+@using BlazorClient.Services.Auth
+@using Microsoft.AspNetCore.Authorization
 @using Shared.DTOs
 @inject IInventoryService InventoryService
-@inject IProductService   ProductService
+@inject IProductService ProductService
 @inject NavigationManager NavManager
+@inject AuthService AuthService
 
 <h3>@(Id == null ? "Create Inventory" : "Edit Inventory")</h3>
 
@@ -16,20 +20,16 @@
         <InputText @bind-Value="model.ScanCode" class="form-control" />
     </div>
 
+    <!-- Επιλογή προϊόντος με αξιόπιστο dropdown (value = ProductId) -->
     <div class="mb-3">
         <label>Επιλογή Προϊόντος</label>
-        <InputText @bind-Value="model.Code" list="productList" class="form-control"
-                   placeholder="Γράψε όνομα ή κωδικό..." />
-        <datalist id="productList">
-            @foreach (var p in products
-                        .Where(p =>
-                        string.IsNullOrWhiteSpace(model.Code) ||
-                        p.Name.Contains(model.Code, StringComparison.OrdinalIgnoreCase) ||
-                        p.Code.Contains(model.Code, StringComparison.OrdinalIgnoreCase)))
+        <InputSelect @bind-Value="SelectedProductId" class="form-select">
+            <option value="">-- Επιλογή προϊόντος --</option>
+            @foreach (var p in products)
             {
-                <option value="@p.Code">@p.Name</option>
+                <option value="@p.Id">@p.Code - @p.Name </option>
             }
-        </datalist>
+        </InputSelect>      
         <ValidationMessage For="() => model.Code" />
     </div>
 
@@ -48,54 +48,101 @@
         <ValidationMessage For="() => model.Quantity" />
     </div>
 
+    <!-- Αποθήκη: μη επεξεργάσιμη. Γεμίζει αυτόματα από το προϊόν -->
     <div class="mb-3">
-        <label>Αποθήκη</label>
+        <label>Αποθήκη (WarehouseId)</label>
         <InputNumber @bind-Value="model.WarehouseId" class="form-control" Disabled="true" />
     </div>
+
+    <!-- Χρήστης: δείχνουμε full name, στέλνουμε UserId στο model -->
     <div class="mb-3">
         <label>Χρήστης</label>
-        <InputNumber @bind-Value="model.UserId" class="form-control" Disabled="true" />
+        <input class="form-control" value="@currentUserFullName" disabled />
+        @* Αν θέλεις να φαίνεται και το Id, ξεκίνα την παρακάτω γραμμή *@
+        @* <InputNumber @bind-Value="model.UserId" class="form-control mt-1" Disabled="true" /> *@
     </div>
 
     <button type="submit" class="btn btn-primary">Save</button>
-    <button type="button" class="btn btn-secondary ms-2" @onclick='() => NavManager.NavigateTo("/inventory")'> Cancel </button>
+    <button type="button" class="btn btn-secondary ms-2" @onclick='() => NavManager.NavigateTo("/inventory")'>Cancel</button>
 </EditForm>
 
 @code {
     [Parameter] public int? Id { get; set; }
+
     private CreateInventoryDto model = new();
     private List<ProductDto> products = new();
 
+    private string? currentUserFullName;
+
+    // Κρατάμε το επιλεγμένο productId. Με το που αλλάξει, ενημερώνουμε Code + WarehouseId.
+    private int? SelectedProductId
+    {
+        get => _selectedProductId;
+        set
+        {
+            if (_selectedProductId == value) return;
+            _selectedProductId = value;
+
+            var p = products.FirstOrDefault(x => x.Id == value);
+            if (p is not null)
+            {
+                model.Code = p.Code;
+                model.WarehouseId = p.WarehouseId; // <-- εδώ μπαίνει ΑΜΕΣΑ το σωστό ID
+            }
+            else
+            {
+                model.Code = null;
+                model.WarehouseId = 0;
+            }
+
+            InvokeAsync(StateHasChanged);
+        }
+    }
+    private int? _selectedProductId;
+
     protected override async Task OnInitializedAsync()
     {
-        // load προϊόντα
+        // 1) Φόρτωσε προϊόντα (με WarehouseId)
         products = (await ProductService.GetAllAsync()).ToList();
 
+        // 2) Τρέχων χρήστης (από claims μέσω AuthService)
+        var me = await AuthService.GetCurrentUserAsync();
+        if (me is not null)
+        {
+            model.UserId = me.Id;
+            currentUserFullName = me.FullName;
+        }
+
+        // 3) Edit mode
         if (Id != null)
         {
             var dto = await InventoryService.GetByIdAsync(Id.Value);
             if (dto != null)
             {
-                model = new CreateInventoryDto {
-                    ScanCode   = dto.ScanCode,
-                    Code       = dto.Code,
-                    Action     = dto.Action,
-                    Quantity   = 0,                // default ή από dto αν είχατε stored
-                    WarehouseId= dto.WarehouseId,
-                    UserId     = dto.UserId
-                };
+                model = new CreateInventoryDto
+                    {
+                        ScanCode = dto.ScanCode,
+                        Code = dto.Code,
+                        Action = dto.Action,
+                        Quantity = dto.Quantity,
+                        WarehouseId = dto.WarehouseId,
+                        UserId = model.UserId != 0 ? model.UserId : dto.UserId
+                    };
+
+                // Βρες το προϊόν της εγγραφής για να εμφανιστεί επιλεγμένο στο dropdown
+                var prod = products.FirstOrDefault(x => x.Code.Equals(dto.Code, StringComparison.OrdinalIgnoreCase));
+                SelectedProductId = prod?.Id;
             }
         }
         else
         {
-            // αν θέλετε default τιμές
-            model.Action     = "Input";
-            model.WarehouseId= /*π.χ. default αποθήκη*/ 1;
-            model.UserId     = /*π.χ. τρέχων χρήστης*/   2;
+            model.Action = "Input";
+            model.Quantity = 0;
+            SelectedProductId = null;
         }
     }
 
-    async Task HandleValidSubmit()
+    private async Task HandleValidSubmit()
     {
         if (Id == null)
             await InventoryService.CreateAsync(model);
