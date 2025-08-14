@@ -1,0 +1,64 @@
+﻿/* ===== WMS Table Basic Theme ===== */
+:root {
+    --wms-bg: #ffffff;
+    --wms-head-bg: #eef2ff;
+    --wms-head-text: #20263a;
+    --wms-border: #e6e9f2;
+    --wms-hover: #edf3ff;
+}
+
+@media (prefers-color-scheme: dark) {
+    :root {
+        --wms-bg: #10131a;
+        --wms-head-bg: #172040;
+        --wms-head-text: #e8ecf7;
+        --wms-border: #242a3a;
+        --wms-hover: #1a244a;
+    }
+}
+
+/* Table wrapper με ελαφριά σκιά & στρογγυλές γωνίες */
+.wms-table-wrap {
+    background: var(--wms-bg);
+    border: 1px solid var(--wms-border);
+    border-radius: 8px;
+    box-shadow: 0 4px 10px rgba(0,0,0,0.05);
+    overflow: hidden;
+}
+
+/* Στυλ για κεφαλίδες */
+.wms-table thead th {
+    background: var(--wms-head-bg);
+    color: var(--wms-head-text);
+    font-weight: bold;
+    border-bottom: 1px solid var(--wms-border);
+}
+
+/* Hover effect */
+.wms-table tbody tr:hover {
+    background: var(--wms-hover);
+}
+
+/* Κελιά */
+.wms-table td, .wms-table th {
+    vertical-align: middle;
+    border-color: var(--wms-border);
+    padding: .5rem .75rem;
+    white-space: nowrap;
+}
+
+    /* Στοίχιση δεξιά για ποσότητες */
+    .wms-table td.text-end {
+        text-align: right;
+    }
+
+/* Badges */
+.badge-in {
+    background: #e7f5ef;
+    border: 1px solid #bfe7d6;
+}
+
+.badge-out {
+    background: #fff1f1;
+    border: 1px solid #ffd0d0;
+}

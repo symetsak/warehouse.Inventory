@@ -1,0 +1,110 @@
+﻿:root {
+    --edit-bg: #fff;
+    --edit-border: #e6e8ef;
+    --edit-shadow: 0 10px 30px rgba(16,24,40,.08);
+    --edit-radius: 16px;
+    --edit-accent: #3b82f6; /* προσαρμόζεται στο μπλε σου */
+}
+
+.edit-container {
+    max-width: 880px;
+    margin: 24px auto;
+    padding: 0 12px;
+}
+
+.edit-card {
+    background: var(--edit-bg);
+    border: 1px solid var(--edit-border);
+    border-radius: var(--edit-radius);
+    box-shadow: var(--edit-shadow);
+    overflow: hidden;
+}
+
+.edit-header {
+    padding: 18px 22px;
+    background: linear-gradient(180deg, rgba(59,130,246,0.08), rgba(59,130,246,0.03));
+    border-bottom: 1px solid var(--edit-border);
+    display: flex;
+    align-items: center;
+    gap: 12px;
+}
+
+.edit-title {
+    font-size: 22px;
+    font-weight: 700;
+    margin: 0;
+    letter-spacing: .2px;
+}
+
+.edit-body {
+    padding: 22px;
+    display: grid;
+    grid-template-columns: 1fr;
+    gap: 14px 18px;
+}
+
+@media (min-width: 768px) {
+    .edit-body.two-col {
+        grid-template-columns: 1fr 1fr;
+    }
+}
+
+.form-block label {
+    font-weight: 600;
+    font-size: 13px;
+    color: #334155;
+    margin-bottom: 6px;
+}
+
+.form-block .form-control, .form-block .form-select {
+    border-radius: 12px;
+    border-color: #d6dae5;
+    padding: 10px 12px;
+}
+
+    .form-block .form-control:focus,
+    .form-block .form-select:focus {
+        border-color: var(--edit-accent);
+        box-shadow: 0 0 0 3px rgba(59,130,246,.15);
+    }
+
+.help-text {
+    font-size: 12px;
+    color: #64748b;
+}
+
+.edit-footer {
+    padding: 14px 22px;
+    border-top: 1px solid var(--edit-border);
+    background: #fafbff;
+    display: flex;
+    gap: 10px;
+    justify-content: flex-start;
+    position: sticky;
+    bottom: 0; /* κολλάει κάτω όταν το form είναι ψηλό */
+}
+
+.btn-primary {
+    border-radius: 10px;
+    padding: 8px 14px;
+}
+
+.btn-secondary {
+    border-radius: 10px;
+    padding: 8px 14px;
+}
+
+.validation-summary-errors {
+    border: 1px solid #fecaca;
+    background: #fef2f2;
+    color: #991b1b;
+    border-radius: 10px;
+    padding: 10px 14px;
+    font-size: 13px;
+}
+
+/* Disabled read-only inputs να φαίνονται “καθαρές” */
+input[disabled], select[disabled] {
+    background: #f8fafc !important;
+    color: #475569;
+}

@@ -1,5 +1,7 @@
 ﻿@page "/product-edit/{Id:int?}"
+@attribute [Authorize]
 @using BlazorClient.Services
+@using Microsoft.AspNetCore.Authorization
 @using Shared.DTOs
 @inject IProductService ProductService
 @inject NavigationManager NavManager

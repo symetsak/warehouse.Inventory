@@ -142,12 +142,6 @@ namespace Infrastructure.Persistence
                 new Product { Id = 3, Code = "PRD003", Name = "Μολύβι HB", Description = "Ξύλινο", Unit = "pcs", Quantity = 200, Price = 0.25m, TotalValue = 50m, WarehouseId = 2 }
             );
 
-            // --- Seed Users ---
-            modelBuilder.Entity<User>().HasData(
-                new User { Id = 1, FullName = "Διαχειριστής", Mobile = "6900000000", Email = "admin@company.com", Username = "admin", PasswordHash = "$2a$11$wI0a8cQm8o2d3c2rN2m6cO4r4iNw1gE8m7V8gq0q1z8C2oWm2hVWe", Role = "Admin" },
-                new User { Id = 2, FullName = "Υπάλληλος", Mobile = "6999999999", Email = "clerk@company.com", Username = "clerk", PasswordHash = "$2a$11$7tTtKQ4qz2mPZs5zq0m3Me0Qe2v7dXyqNnH2y3b1rTz7oE9xYB7vS", Role = "Clerk" }
-            );
-
             // --- (προαιρετικά) Seed Inventory Records ---
             modelBuilder.Entity<Inventory>().HasData(
                 new Inventory{ Id = 1,ScanCode = "SCN1001",Code = "PRD001", Action = "Input", WarehouseId = 1, UserId = 1,Timestamp = new DateTime(2025, 8, 1, 9, 0, 0, DateTimeKind.Utc) },

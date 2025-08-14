@@ -1,31 +1,43 @@
 ﻿@page "/warehouse-edit/{Id:int?}"
+@attribute [Authorize]
 @using BlazorClient.Services
+@using Microsoft.AspNetCore.Authorization
 @using Shared.DTOs
 @inject IWarehouseService WarehouseService
 @inject NavigationManager NavManager
 
-<h3>@(Id == null ? "Create Warehouse" : "Edit Warehouse")</h3>
+<div class="edit-container">
+    <div class="edit-card">
+        <div class="edit-header">
+            <h3 class="edit-title">@(Id == null ? "Create Warehouse" : "Edit Warehouse")</h3>
+        </div>
 
-<EditForm Model="model" OnValidSubmit="HandleValidSubmit">
-    <DataAnnotationsValidator />
-    <ValidationSummary />
+        <EditForm Model="model" OnValidSubmit="HandleValidSubmit">
+            <DataAnnotationsValidator />
+            <ValidationSummary />
 
-    <div class="mb-3">
-        <label>Name</label>
-        <InputText @bind-Value="model.Name" class="form-control" />
+            <div class="edit-body two-col">
+                <div class="form-block">
+                    <label>Name</label>
+                    <InputText @bind-Value="model.Name" class="form-control" />
+                </div>
+
+                <div class="form-block">
+                    <label>Address</label>
+                    <InputText @bind-Value="model.Address" class="form-control" />
+                </div>
+            </div>
+
+            <div class="edit-footer">
+                <button type="submit" class="btn btn-primary">Save</button>
+                <button type="button" class="btn btn-secondary" @onclick='() => NavManager.NavigateTo("/warehouses")'>Cancel</button>
+            </div>
+        </EditForm>
     </div>
-    <div class="mb-3">
-        <label>Address</label>
-        <InputText @bind-Value="model.Address" class="form-control" />
-    </div>
-
-    <button type="submit" class="btn btn-primary">Save</button>
-    <button type="button" class="btn btn-secondary ms-2" @onclick='() => NavManager.NavigateTo("/warehouses")'>Cancel</button>
-</EditForm>
+</div>
 
 @code {
-    [Parameter]
-    public int? Id { get; set; }
+    [Parameter] public int? Id { get; set; }
 
     private CreateWarehouseDto model = new();
 
@@ -37,20 +49,21 @@
             if (dto != null)
             {
                 model = new CreateWarehouseDto
-                {
-                    Name = dto.Name,
-                    Address = dto.Address
-                };
+                    {
+                        Name = dto.Name,
+                        Address = dto.Address
+                    };
             }
         }
     }
 
-    async Task HandleValidSubmit()
+    private async Task HandleValidSubmit()
     {
         if (Id == null)
             await WarehouseService.CreateAsync(model);
         else
             await WarehouseService.UpdateAsync(Id.Value, model);
+
         NavManager.NavigateTo("/warehouses");
     }
 }
