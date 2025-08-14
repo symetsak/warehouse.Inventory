@@ -11,30 +11,34 @@
                 <span class="ms-2">Home</span>
             </NavLink>
         </div>
-        <div class="nav-item">
-            <NavLink class="nav-link" href="products" Match="NavLinkMatch.Prefix">
-                <span class="bi bi-box-seam"></span>
-                <span class="ms-2">Products</span>
-            </NavLink>
-        </div>
-        <div class="nav-item">
-            <NavLink class="nav-link" href="warehouses" Match="NavLinkMatch.Prefix">
-                <span class="bi bi-bank2"></span>
-                <span class="ms-2">Warehouses</span>
-            </NavLink>
-        </div>
-        <div class="nav-item">
-            <NavLink class="nav-link" href="inventory" Match="NavLinkMatch.Prefix">
-                <span class="bi bi-journal-text"></span>
-                <span class="ms-2">Inventory</span>
-            </NavLink>
-        </div>
-        <div class="nav-item">
-            <NavLink class="nav-link" href="users" Match="NavLinkMatch.Prefix">
-                <span class="bi bi-people"></span>
-                <span class="ms-2">Users</span>
-            </NavLink>
-        </div>
+        <AuthorizeView>
+            <Authorized>
+                <div class="nav-item">
+                    <NavLink class="nav-link" href="products" Match="NavLinkMatch.Prefix">
+                        <span class="bi bi-box-seam"></span>
+                        <span class="ms-2">Products</span>
+                    </NavLink>
+                </div>
+                <div class="nav-item">
+                    <NavLink class="nav-link" href="warehouses" Match="NavLinkMatch.Prefix">
+                        <span class="bi bi-bank2"></span>
+                        <span class="ms-2">Warehouses</span>
+                    </NavLink>
+                </div>
+                <div class="nav-item">
+                    <NavLink class="nav-link" href="inventory" Match="NavLinkMatch.Prefix">
+                        <span class="bi bi-journal-text"></span>
+                        <span class="ms-2">Inventory</span>
+                    </NavLink>
+                </div>
+                <div class="nav-item">
+                    <NavLink class="nav-link" href="users" Match="NavLinkMatch.Prefix">
+                        <span class="bi bi-people"></span>
+                        <span class="ms-2">Users</span>
+                    </NavLink>
+                </div>
+            </Authorized>
+        </AuthorizeView>
     </nav>
 </div>
 

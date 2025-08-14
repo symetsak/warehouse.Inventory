@@ -105,6 +105,11 @@ namespace WebApi
 
             var app = builder.Build();
 
+            using var scope = app.Services.CreateScope();
+            var db = scope.ServiceProvider.GetRequiredService<ApplicationDbContext>();
+            var cfg = scope.ServiceProvider.GetRequiredService<IConfiguration>();
+            DbSeeder.SeedAsync(db, cfg).GetAwaiter().GetResult();
+
             // CORS πριν από τα endpoints
             app.UseCors();
 

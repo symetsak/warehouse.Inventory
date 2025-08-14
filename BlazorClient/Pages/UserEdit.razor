@@ -1,53 +1,67 @@
 ﻿@page "/user-edit/{Id:int?}"
-@attribute [Authorize(Roles="Admin")] 
+@attribute [Authorize(Roles = "Admin")]
 @using BlazorClient.Services
 @using Microsoft.AspNetCore.Authorization
 @using Shared.DTOs
 @inject IUserService UserService
 @inject NavigationManager NavManager
 
-<h3>@(Id == null ? "Create User" : "Edit User")</h3>
+<div class="edit-container">
+    <div class="edit-card">
+        <div class="edit-header">
+            <h3 class="edit-title">@(Id == null ? "Create User" : "Edit User")</h3>
+        </div>
 
-<EditForm Model="model" OnValidSubmit="HandleValidSubmit">
-    <DataAnnotationsValidator />
-    <ValidationSummary />
+        <EditForm Model="model" OnValidSubmit="HandleValidSubmit">
+            <DataAnnotationsValidator />
+            <ValidationSummary />
 
-    <div class="mb-3">
-        <label>Full Name</label>
-        <InputText @bind-Value="model.FullName" class="form-control" />
-    </div>
-    <div class="mb-3">
-        <label>Mobile</label>
-        <InputText @bind-Value="model.Mobile" class="form-control" />
-    </div>
-    <div class="mb-3">
-        <label>Email</label>
-        <InputText @bind-Value="model.Email" class="form-control" />
-    </div>
-    <div class="mb-3">
-        <label>Username</label>
-        <InputText @bind-Value="model.Username" class="form-control" />
-    </div>
-    <div class="mb-3">
-        <label>Password</label>
-        <InputText @bind-Value="model.Password" type="password" class="form-control" />
-    </div>
-    <div class="mb-3">
-        <label>Role</label>
-        <InputSelect @bind-Value="model.Role" class="form-control">
-            <option value="">-- Select Role --</option>
-            <option value="Admin">Admin</option>
-            <option value="Employee">Employee</option>
-        </InputSelect>
-    </div>
+            <div class="edit-body two-col">
+                <div class="form-block">
+                    <label>Full Name</label>
+                    <InputText @bind-Value="model.FullName" class="form-control" />
+                </div>
 
-    <button type="submit" class="btn btn-primary">Save</button>
-    <button type="button" class="btn btn-secondary ms-2" @onclick='() => NavManager.NavigateTo("/users")'>Cancel</button>
-</EditForm>
+                <div class="form-block">
+                    <label>Mobile</label>
+                    <InputText @bind-Value="model.Mobile" class="form-control" />
+                </div>
+
+                <div class="form-block">
+                    <label>Email</label>
+                    <InputText @bind-Value="model.Email" class="form-control" />
+                </div>
+
+                <div class="form-block">
+                    <label>Username</label>
+                    <InputText @bind-Value="model.Username" class="form-control" />
+                </div>
+
+                <div class="form-block">
+                    <label>Password</label>
+                    <InputText @bind-Value="model.Password" type="password" class="form-control" />
+                </div>
+
+                <div class="form-block">
+                    <label>Role</label>
+                    <InputSelect @bind-Value="model.Role" class="form-select">
+                        <option value="">-- Select Role --</option>
+                        <option value="Admin">Admin</option>
+                        <option value="Employee">Employee</option>
+                    </InputSelect>
+                </div>
+            </div>
+
+            <div class="edit-footer">
+                <button type="submit" class="btn btn-primary">Save</button>
+                <button type="button" class="btn btn-secondary" @onclick='() => NavManager.NavigateTo("/users")'>Cancel</button>
+            </div>
+        </EditForm>
+    </div>
+</div>
 
 @code {
-    [Parameter]
-    public int? Id { get; set; }
+    [Parameter] public int? Id { get; set; }
 
     private CreateUserDto model = new();
 
@@ -59,14 +73,14 @@
             if (dto != null)
             {
                 model = new CreateUserDto
-                {
-                    FullName = dto.FullName,
-                    Mobile = dto.Mobile,
-                    Email = dto.Email,
-                    Username = dto.Username,
-                    Password = string.Empty, 
-                    Role = dto.Role
-                };
+                    {
+                        FullName = dto.FullName,
+                        Mobile = dto.Mobile,
+                        Email = dto.Email,
+                        Username = dto.Username,
+                        Password = string.Empty,
+                        Role = dto.Role
+                    };
             }
         }
     }

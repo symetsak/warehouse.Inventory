@@ -1,16 +1,16 @@
 ﻿@page "/users"
 @attribute [Authorize]
-@using BlazorClient.Services
+
 @using Microsoft.AspNetCore.Authorization
-@using Shared.DTOs
 @using Microsoft.AspNetCore.Components.Authorization
+@using BlazorClient.Services
+@using Shared.DTOs
+
 @inject IUserService UserService
 @inject NavigationManager NavManager
-@inject IJSRuntime JsRuntime
 
 <h3>Users</h3>
 
-<!-- Create: μόνο Admin -->
 <AuthorizeView Roles="Admin">
     <button class="btn btn-primary mb-3" @onclick="CreateNew">Create New User</button>
 </AuthorizeView>
@@ -25,49 +25,61 @@ else if (!users.Any())
 }
 else
 {
-    <table class="table table-striped">
-        <thead>
-            <tr>
-                <th>Full Name</th>
-                <th>Username</th>
-                <th>Email</th>
-                <th>Mobile</th>
-                <th>Role</th>
-
-                <!-- Στήλη ενεργειών: μόνο Admin -->
-                <AuthorizeView Roles="Admin">
-                    <Authorized>
-                        <th></th>
-                    </Authorized>
-                </AuthorizeView>
-            </tr>
-        </thead>
-        <tbody>
-            @foreach (var u in users)
-            {
-                <tr>
-                    <td>@u.FullName</td>
-                    <td>@u.Username</td>
-                    <td>@u.Email</td>
-                    <td>@u.Mobile</td>
-                    <td>@u.Role</td>
-
-                    <!-- Κουμπιά Edit/Delete: μόνο Admin -->
-                    <AuthorizeView Roles="Admin">
-                        <Authorized>
+    <div class="table-responsive wms">
+        <div class="wms-table-wrap">
+            <table class="table table-striped table-hover wms-table wms-table-sm">
+                <thead>
+                    <tr>
+                        <th>Full Name</th>
+                        <th>Username</th>
+                        <th>Email</th>
+                        <th>Mobile</th>
+                        <th>Role</th>
+                        <AuthorizeView Roles="Admin">
+                            <Authorized>
+                                <th class="text-end">Actions</th>
+                            </Authorized>
+                        </AuthorizeView>
+                    </tr>
+                </thead>
+                <tbody>
+                    @foreach (var u in users)
+                    {
+                        <tr>
+                            <td>@u.FullName</td>
+                            <td>@u.Username</td>
+                            <td>@u.Email</td>
+                            <td>@u.Mobile</td>
                             <td>
-                                <button class="btn btn-sm btn-secondary me-1" @onclick="() => Edit(u.Id)">Edit</button>
-                                <button class="btn btn-sm btn-danger" @onclick="() => Delete(u.Id)">Delete</button>
+                                @if (string.Equals(u.Role, "Admin", StringComparison.OrdinalIgnoreCase))
+                                {
+                                    <span class="badge text-bg-primary">Admin</span>
+                                }
+                                else if (string.Equals(u.Role, "Employee", StringComparison.OrdinalIgnoreCase))
+                                {
+                                    <span class="badge text-bg-success">Employee</span>
+                                }
+                                else
+                                {
+                                    <span class="badge text-bg-secondary">@u.Role</span>
+                                }
                             </td>
-                        </Authorized>
-                    </AuthorizeView>
-                </tr>
-            }
-        </tbody>
-    </table>
+                            <AuthorizeView Roles="Admin">
+                                <Authorized>
+                                    <td class="text-end wms-row-actions">
+                                        <button class="btn btn-secondary btn-sm me-1" @onclick="() => Edit(u.Id)">Edit</button>
+                                        <button class="btn btn-danger btn-sm" @onclick="() => Delete(u.Id)">Delete</button>
+                                    </td>
+                                </Authorized>
+                            </AuthorizeView>
+                        </tr>
+                    }
+                </tbody>
+            </table>
+        </div>
+    </div>
 }
 
-<!-- Modal επιβεβαίωσης -->
 <BlazorClient.Shared2.ConfirmDialog Visible="showDeleteDialog"
                                     Title="Are you sure to delete ?"
                                     Message="@deleteMessage"
@@ -95,7 +107,7 @@ else
         var u = users?.FirstOrDefault(x => x.Id == id);
         deleteMessage = u is null
             ? "Delete this user?"
-            : $"User \"{u.FullName}\" (@{u.Username})?";
+            : $"User \"@{u.Username}\" ({u.FullName})?";
         showDeleteDialog = true;
         await Task.CompletedTask;
     }

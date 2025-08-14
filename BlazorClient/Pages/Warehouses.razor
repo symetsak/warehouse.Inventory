@@ -1,16 +1,16 @@
 ﻿@page "/warehouses"
-@attribute [Authorize]  
-@using BlazorClient.Services
+@attribute [Authorize]
+
 @using Microsoft.AspNetCore.Authorization
-@using Shared.DTOs
 @using Microsoft.AspNetCore.Components.Authorization
+@using BlazorClient.Services
+@using Shared.DTOs
+
 @inject IWarehouseService WarehouseService
 @inject NavigationManager NavManager
-@inject IJSRuntime JsRuntime
 
 <h3>Warehouses</h3>
 
-<!-- Create: μόνο Admin -->
 <AuthorizeView Roles="Admin">
     <button class="btn btn-primary mb-3" @onclick="CreateNew">Create New Warehouse</button>
 </AuthorizeView>
@@ -25,59 +25,53 @@ else if (!warehouses.Any())
 }
 else
 {
-    <table class="table table-striped">
-        <thead>
-            <tr>
-                <th>Id</th>
-                <th>Name</th>
-                <th>Address</th>
-
-                <!-- header για actions: μόνο Admin -->
-                <AuthorizeView Roles="Admin">
-                    <Authorized>
-                        <th></th>
-                    </Authorized>
-                    <NotAuthorized>
-                        @* για Employee δεν δείχνουμε στήλη actions *@
-                    </NotAuthorized>
-                </AuthorizeView>
-            </tr>
-        </thead>
-        <tbody>
-            @foreach (var w in warehouses)
-            {
-                <tr>
-                    <td>@w.Id</td>
-                    <td>@w.Name</td>
-                    <td>@w.Address</td>
-
-                    <!-- κουμπιά Edit/Delete: μόνο Admin -->
-                    <AuthorizeView Roles="Admin">
-                        <Authorized>
-                            <td>
-                                <button class="btn btn-sm btn-secondary me-1" @onclick="() => Edit(w.Id)">Edit</button>
-                                <button class="btn btn-sm btn-danger" @onclick="() => Delete(w.Id)">Delete</button>
-                            </td>
-                        </Authorized>
-                    </AuthorizeView>
-                </tr>
-            }
-        </tbody>
-    </table>
+    <div class="table-responsive wms">
+        <div class="wms-table-wrap">
+            <table class="table table-striped table-hover wms-table wms-table-sm">
+                <thead>
+                    <tr>
+                        <th style="width: 100px;">Id</th>
+                        <th>Name</th>
+                        <th>Address</th>
+                        <AuthorizeView Roles="Admin">
+                            <Authorized>
+                                <th class="text-end" style="width: 160px;">Actions</th>
+                            </Authorized>
+                        </AuthorizeView>
+                    </tr>
+                </thead>
+                <tbody>
+                    @foreach (var w in warehouses)
+                    {
+                        <tr>
+                            <td>@w.Id</td>
+                            <td>@w.Name</td>
+                            <td>@w.Address</td>
+                            <AuthorizeView Roles="Admin">
+                                <Authorized>
+                                    <td class="text-end wms-row-actions">
+                                        <button class="btn btn-secondary btn-sm me-1" @onclick="() => Edit(w.Id)">Edit</button>
+                                        <button class="btn btn-danger btn-sm" @onclick="() => Delete(w.Id)">Delete</button>
+                                    </td>
+                                </Authorized>
+                            </AuthorizeView>
+                        </tr>
+                    }
+                </tbody>
+            </table>
+        </div>
+    </div>
 }
 
-<!-- Confirm dialog -->
-<BlazorClient.Shared2.ConfirmDialog 
-    Visible="showDeleteDialog"
-    Title="Are you sure to delete ?"
-    Message="@deleteMessage"
-    OnConfirm="ConfirmDelete"
-    OnCancel="CancelDelete" />
+<BlazorClient.Shared2.ConfirmDialog Visible="showDeleteDialog"
+                                    Title="Are you sure to delete ?"
+                                    Message="@deleteMessage"
+                                    OnConfirm="ConfirmDelete"
+                                    OnCancel="CancelDelete" />
 
 @code {
     private List<WarehouseDto>? warehouses;
 
-    // dialog state
     private bool showDeleteDialog;
     private string deleteMessage = string.Empty;
     private int pendingDeleteId;
@@ -90,7 +84,6 @@ else
     void CreateNew() => NavManager.NavigateTo("/warehouse-edit");
     void Edit(int id) => NavManager.NavigateTo($"/warehouse-edit/{id}");
 
-    // ανοίγει το modal
     async Task Delete(int id)
     {
         pendingDeleteId = id;
@@ -102,7 +95,6 @@ else
         await Task.CompletedTask;
     }
 
-    // επιβεβαίωση από το modal
     private async Task ConfirmDelete()
     {
         showDeleteDialog = false;
@@ -110,6 +102,5 @@ else
         warehouses = (await WarehouseService.GetAllAsync()).ToList();
     }
 
-    // ακύρωση/κλείσιμο modal
     private void CancelDelete() => showDeleteDialog = false;
 }
