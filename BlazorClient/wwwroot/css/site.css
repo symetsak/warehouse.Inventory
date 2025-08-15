@@ -62,3 +62,16 @@
     background: #fff1f1;
     border: 1px solid #ffd0d0;
 }
+
+/* header row με search δεξιά */
+.wms-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: .75rem;
+    margin-bottom: .5rem;
+}
+
+    .wms-header .wms-search {
+        width: clamp(220px, 28vw, 420px);
+    }

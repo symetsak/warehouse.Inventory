@@ -10,9 +10,16 @@
 @inject IProductService ProductService
 @inject IJSRuntime JsRuntime
 
-<h3>Products</h3>
+<div class="wms-header">
+    <h3 class="mb-0">Products</h3>
+    <input class="form-control wms-search"
+           placeholder="Search..."
+           @bind="searchText" 
+           @bind:event="oninput"
+           @bind:after="OnSearchChanged" />
+</div>
 
-<!-- Admin‑only action buttons -->
+<!-- Admin-only action buttons -->
 <AuthorizeView Roles="Admin">
     <div class="mb-3 d-flex gap-2 flex-wrap">
         <button class="btn btn-primary" @onclick="AddProduct">Add</button>
@@ -25,11 +32,11 @@
     </div>
 </AuthorizeView>
 
-@if (products == null)
+@if (products is null)
 {
     <p><em>Loading...</em></p>
 }
-else if (!products.Any())
+else if (VisibleCount == 0)
 {
     <p>No products found.</p>
 }
@@ -78,20 +85,53 @@ else
 
     <nav>
         <ul class="pagination justify-content-center mt-4 flex-wrap">
+
+            <!-- Πρώτη -->
             <li class="page-item @(currentIndex == 0 ? "disabled" : "")">
-                <button class="page-link" @onclick="() => ChangeIndex(currentIndex - 1)" disabled="@(currentIndex == 0)">&lt;</button>
+                <button class="page-link"
+                        @onclick="() => ChangeIndex(0)"
+                        disabled="@(currentIndex == 0)">
+                    &laquo;
+                </button>
             </li>
+
+            <!-- Προηγούμενη -->
+            <li class="page-item @(currentIndex == 0 ? "disabled" : "")">
+                <button class="page-link"
+                        @onclick="() => ChangeIndex(currentIndex - 1)"
+                        disabled="@(currentIndex == 0)">
+                    &lt;
+                </button>
+            </li>
+
             @foreach (var i in DisplayPages)
             {
                 <li class="page-item @(i == currentIndex ? "active" : "")">
                     <button class="page-link" @onclick="() => ChangeIndex(i)">@(i + 1)</button>
                 </li>
             }
-            <li class="page-item @(currentIndex >= products.Count - 1 ? "disabled" : "")">
-                <button class="page-link" @onclick="() => ChangeIndex(currentIndex + 1)" disabled="@(currentIndex >= products.Count - 1)">&gt;</button>
+
+            <!-- Επόμενη -->
+            <li class="page-item @(currentIndex >= VisibleCount - 1 ? "disabled" : "")">
+                <button class="page-link"
+                        @onclick="() => ChangeIndex(currentIndex + 1)"
+                        disabled="@(currentIndex >= VisibleCount - 1)">
+                    &gt;
+                </button>
             </li>
+
+            <!-- Τελευταία -->
+            <li class="page-item @(currentIndex >= VisibleCount - 1 ? "disabled" : "")">
+                <button class="page-link"
+                        @onclick="() => ChangeIndex(VisibleCount - 1)"
+                        disabled="@(currentIndex >= VisibleCount - 1)">
+                    &raquo;
+                </button>
+            </li>
+
         </ul>
     </nav>
+
 }
 
 <!-- Shared confirm dialog -->
@@ -116,9 +156,14 @@ else
     private bool showDeleteModal = false;
     private string deleteMessage = "";
 
-    // μόνο Admin επιτρέπει edit/save/delete
-    private bool CanEdit => products.Count > 0 && !isEditing && isAdmin;
-    private bool CanSave => isEditing && isAdmin;
+    // ---- search ----
+    private string searchText = string.Empty;
+
+    // Προκύπτουσα φιλτραρισμένη λίστα (on-demand)
+    private List<ProductDto> View =>
+        (products ?? new List<ProductDto>()).Where(Matches).ToList();
+
+    private int VisibleCount => View.Count;
 
     protected override async Task OnInitializedAsync()
     {
@@ -126,24 +171,35 @@ else
         isAdmin = user.IsInRole("Admin");
 
         products = (await ProductService.GetAllAsync()).ToList();
-        if (products.Any())
+        if (VisibleCount > 0)
             await ChangeIndex(0);
+    }
+
+    private async Task OnSearchChanged()
+    {
+        // Με το που αλλάζει το search, πήγαινε στο 1ο ορατό αποτέλεσμα (αν υπάρχει)
+        if (VisibleCount > 0) await ChangeIndex(0);
+        else formData = new ProductDto();
     }
 
     private async Task ChangeIndex(int index)
     {
-        if (index < 0 || index >= products.Count)
-            return;
+        var list = View;
+        if (list.Count == 0) { formData = new ProductDto(); return; }
+
+        if (index < 0) index = 0;
+        if (index >= list.Count) index = list.Count - 1;
 
         currentIndex = index;
-        formData = Clone(products[index]);
+        formData = Clone(list[index]);
         previousData = Clone(formData);
         isEditing = false;
         isNew = false;
         await InvokeAsync(StateHasChanged);
     }
 
-    private void ComputeTotal(ChangeEventArgs _) => formData.TotalValue = formData.Quantity * formData.Price;
+    private void ComputeTotal(ChangeEventArgs _) =>
+        formData.TotalValue = formData.Quantity * formData.Price;
 
     private void AddProduct()
     {
@@ -166,15 +222,15 @@ else
         if (!CanSave) return;
 
         var dto = new CreateProductDto
-            {
-                Code = formData.Code,
-                Name = formData.Name,
-                Description = formData.Description ?? string.Empty,
-                Unit = formData.Unit,
-                Quantity = formData.Quantity,
-                Price = formData.Price,
-                WarehouseId = formData.WarehouseId
-            };
+        {
+            Code = formData.Code,
+            Name = formData.Name,
+            Description = formData.Description ?? string.Empty,
+            Unit = formData.Unit,
+            Quantity = formData.Quantity,
+            Price = formData.Price,
+            WarehouseId = formData.WarehouseId
+        };
 
         try
         {
@@ -182,12 +238,15 @@ else
             {
                 var created = await ProductService.CreateAsync(dto);
                 products = (await ProductService.GetAllAsync()).ToList();
-                await ChangeIndex(products.FindIndex(p => p.Id == created.Id));
+                var list = View;
+                var idx = list.FindIndex(p => p.Id == created.Id);
+                await ChangeIndex(idx >= 0 ? idx : 0);
             }
             else
             {
                 await ProductService.UpdateAsync(formData.Id, dto);
-                products[currentIndex] = Clone(formData);
+                var i = products.FindIndex(p => p.Id == formData.Id);
+                if (i >= 0) products[i] = Clone(formData);
                 await ChangeIndex(currentIndex);
             }
         }
@@ -213,10 +272,14 @@ else
     {
         showDeleteModal = false;
         if (!isAdmin) return;
+
         await ProductService.DeleteAsync(formData.Id);
-        products.RemoveAt(currentIndex);
-        if (products.Any())
-            await ChangeIndex(0);
+
+        var i = products.FindIndex(p => p.Id == formData.Id);
+        if (i >= 0) products.RemoveAt(i);
+
+        if (VisibleCount > 0)
+            await ChangeIndex(Math.Min(currentIndex, VisibleCount - 1));
         else
             formData = new ProductDto();
     }
@@ -232,25 +295,25 @@ else
     }
 
     private ProductDto Clone(ProductDto src) => new ProductDto
-        {
-            Id = src.Id,
-            Code = src.Code,
-            Name = src.Name,
-            Description = src.Description,
-            Unit = src.Unit,
-            Quantity = src.Quantity,
-            Price = src.Price,
-            TotalValue = src.TotalValue,
-            WarehouseId = src.WarehouseId,
-            WarehouseName = src.WarehouseName
-        };
+    {
+        Id = src.Id,
+        Code = src.Code,
+        Name = src.Name,
+        Description = src.Description,
+        Unit = src.Unit,
+        Quantity = src.Quantity,
+        Price = src.Price,
+        TotalValue = src.TotalValue,
+        WarehouseId = src.WarehouseId,
+        WarehouseName = src.WarehouseName
+    };
 
-    // Sliding window of up to 3 pages, center currentIndex when possible
+    // Sliding window up to 3 pages, πάνω στη φιλτραρισμένη λίστα
     private IEnumerable<int> DisplayPages
     {
         get
         {
-            int total = products.Count;
+            var total = VisibleCount;
             const int max = 3;
             if (total == 0) yield break;
             int half = max / 2;
@@ -263,5 +326,26 @@ else
         }
     }
 
-    private string GetPageItemClass(int i) => $"page-item {(i == currentIndex ? "active" : "")}";
+    private bool Matches(ProductDto p)
+    {
+        var q = (searchText ?? string.Empty).Trim();
+        if (q.Length == 0) return true;
+
+        bool Has(string? s) => !string.IsNullOrEmpty(s) &&
+                               s.Contains(q, StringComparison.OrdinalIgnoreCase);
+
+        return Has(p.Code)
+            || Has(p.Name)
+            || Has(p.Unit)
+            || Has(p.Description)
+            || p.Quantity.ToString().Contains(q, StringComparison.OrdinalIgnoreCase)
+            || p.Price.ToString().Contains(q, StringComparison.OrdinalIgnoreCase)
+            || p.TotalValue.ToString().Contains(q, StringComparison.OrdinalIgnoreCase)
+            || p.WarehouseId.ToString().Contains(q, StringComparison.OrdinalIgnoreCase)
+            || Has(p.WarehouseName);
+    }
+
+    // μόνο Admin επιτρέπει edit/save/delete
+    private bool CanEdit => VisibleCount > 0 && !isEditing && isAdmin;
+    private bool CanSave => isEditing && isAdmin;
 }

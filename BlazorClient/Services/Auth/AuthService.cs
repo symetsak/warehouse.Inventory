@@ -3,6 +3,7 @@ using System.Net.Http.Json;
 using System.Security.Claims;
 using Microsoft.AspNetCore.Components.Authorization;
 using Microsoft.JSInterop;
+using Shared.DTOs;
 
 namespace BlazorClient.Services.Auth
 {
@@ -38,6 +39,9 @@ namespace BlazorClient.Services.Auth
             DateTime RefreshExpiresAt
         );
         public record RefreshRequest(string RefreshToken);
+
+        // ✅ NEW: Reset-password request (ταιριάζει με το API)
+        public record ResetPasswordRequest(string Username, string CurrentPassword, string NewPassword);
 
         // ===== Public shape for current user =====
         public record CurrentUser(int Id, string FullName, string? Role);
@@ -156,5 +160,27 @@ namespace BlazorClient.Services.Auth
 
             return new CurrentUser(uid, fullName, role);
         }
+
+        // ✅ NEW: Reset password (anonymous; χρησιμοποιεί το νέο API)
+        public async Task<(bool ok, string? message)> ResetPasswordAsync(string username, string currentPassword, string newPassword)
+        {
+            var res = await _http.PostAsJsonAsync("api/Auth/reset-password",
+                new ResetPasswordRequest(username, currentPassword, newPassword));
+
+            if (res.IsSuccessStatusCode) return (true, null);
+
+            var txt = await res.Content.ReadAsStringAsync();
+            try
+            {
+                using var doc = System.Text.Json.JsonDocument.Parse(txt);
+                if (doc.RootElement.TryGetProperty("message", out var m)) return (false, m.GetString());
+                if (doc.RootElement.TryGetProperty("title", out var t)) return (false, t.GetString());
+                if (doc.RootElement.TryGetProperty("detail", out var d)) return (false, d.GetString());
+            }
+            catch { }
+
+            return (false, $"Unexpected error. ({(int)res.StatusCode})");
+        }
+
     }
 }

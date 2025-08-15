@@ -2,14 +2,17 @@
 @attribute [Authorize]
 
 @using Microsoft.AspNetCore.Authorization
-@using Microsoft.AspNetCore.Components.Authorization
 @using BlazorClient.Services
 @using Shared.DTOs
 
 @inject IWarehouseService WarehouseService
 @inject NavigationManager NavManager
 
-<h3>Warehouses</h3>
+<div class="wms-header">
+    <h3 class="mb-0">Warehouses</h3>
+    <input class="form-control wms-search" placeholder="Search..."
+           @bind="searchText" @bind:event="oninput" />
+</div>
 
 <AuthorizeView Roles="Admin">
     <button class="btn btn-primary mb-3" @onclick="CreateNew">Create New Warehouse</button>
@@ -19,7 +22,7 @@
 {
     <p><em>Loading...</em></p>
 }
-else if (!warehouses.Any())
+else if (!Filtered.Any())
 {
     <p>No warehouses found.</p>
 }
@@ -41,7 +44,7 @@ else
                     </tr>
                 </thead>
                 <tbody>
-                    @foreach (var w in warehouses)
+                    @foreach (var w in Filtered)
                     {
                         <tr>
                             <td>@w.Id</td>
@@ -71,6 +74,7 @@ else
 
 @code {
     private List<WarehouseDto>? warehouses;
+    private string searchText = string.Empty;
 
     private bool showDeleteDialog;
     private string deleteMessage = string.Empty;
@@ -81,6 +85,16 @@ else
         warehouses = (await WarehouseService.GetAllAsync()).ToList();
     }
 
+    private IEnumerable<WarehouseDto> Filtered =>
+        string.IsNullOrWhiteSpace(searchText)
+        ? warehouses ?? Enumerable.Empty<WarehouseDto>()
+        : (warehouses ?? Enumerable.Empty<WarehouseDto>())
+            .Where(w =>
+                w.Id.ToString().Contains(searchText, StringComparison.OrdinalIgnoreCase) ||
+                (!string.IsNullOrEmpty(w.Name) && w.Name.Contains(searchText, StringComparison.OrdinalIgnoreCase)) ||
+                (!string.IsNullOrEmpty(w.Address) && w.Address.Contains(searchText, StringComparison.OrdinalIgnoreCase))
+            );
+
     void CreateNew() => NavManager.NavigateTo("/warehouse-edit");
     void Edit(int id) => NavManager.NavigateTo($"/warehouse-edit/{id}");
 
@@ -88,9 +102,7 @@ else
     {
         pendingDeleteId = id;
         var w = warehouses?.FirstOrDefault(x => x.Id == id);
-        deleteMessage = w is null
-            ? "Delete this warehouse?"
-            : $"Warehouse \"{w.Name}\" (ID {w.Id})?";
+        deleteMessage = w is null ? "Delete this warehouse?" : $"Warehouse \"{w?.Name}\" (ID {w?.Id})?";
         showDeleteDialog = true;
         await Task.CompletedTask;
     }

@@ -96,8 +96,12 @@ namespace WebApi.Controllers
             entity.Mobile = dto.Mobile;
             entity.Email = dto.Email;
             entity.Username = dto.Username;
-            entity.PasswordHash = dto.Password; // ή μην αλλάζεις password εδώ
             entity.Role = dto.Role;
+
+            if (!string.IsNullOrWhiteSpace(dto.Password))
+            {
+                entity.PasswordHash = PasswordHasher.Hash(dto.Password);
+            }
 
             await _db.SaveChangesAsync();
             return NoContent();

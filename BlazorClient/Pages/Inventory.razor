@@ -1,6 +1,7 @@
 ﻿@page "/inventory"
 @attribute [Authorize]
 
+@using System
 @using Microsoft.AspNetCore.Authorization
 @using Microsoft.AspNetCore.Components.Authorization
 @using BlazorClient.Services
@@ -8,9 +9,15 @@
 
 @inject IInventoryService InventoryService
 @inject NavigationManager NavManager
+@inject IJSRuntime JsRuntime
 
-<h3>Inventory Records</h3>
+<div class="wms-header">
+    <h3 class="mb-0">Inventory Records</h3>
+    <input class="form-control wms-search" placeholder="Search..."
+           @bind="searchText" @bind:event="oninput" />
+</div>
 
+<!-- Create: μόνο Admin & Employee -->
 <AuthorizeView Roles="Admin,Employee">
     <button class="btn btn-primary mb-3" @onclick='() => NavManager.NavigateTo("/inventory-edit")'>
         Create New Inventory
@@ -21,7 +28,7 @@
 {
     <p><em>Loading...</em></p>
 }
-else if (!records.Any())
+else if (!FilteredRecords.Any())
 {
     <p>No records found.</p>
 }
@@ -47,7 +54,7 @@ else
                     </tr>
                 </thead>
                 <tbody>
-                    @foreach (var r in records)
+                    @foreach (var r in FilteredRecords)
                     {
                         <tr>
                             <td>@r.ScanCode</td>
@@ -95,6 +102,7 @@ else
 
 @code {
     private List<InventoryDto>? records;
+    private string searchText = string.Empty;
 
     private bool showDeleteDialog;
     private string deleteMessage = string.Empty;
@@ -105,13 +113,36 @@ else
         records = (await InventoryService.GetAllAsync()).ToList();
     }
 
+    // Προβολή μετά από φιλτράρισμα
+    private IEnumerable<InventoryDto> FilteredRecords =>
+        string.IsNullOrWhiteSpace(searchText)
+        ? records ?? Enumerable.Empty<InventoryDto>()
+        : (records ?? Enumerable.Empty<InventoryDto>())
+            .Where(Matches);
+
+    // Αναζήτηση σε όλα τα πεδία
+    private bool Matches(InventoryDto r)
+    {
+        var q = searchText.Trim();
+        if (q.Length == 0) return true;
+
+        bool Has(string? s) => !string.IsNullOrEmpty(s) &&
+                               s.Contains(q, StringComparison.OrdinalIgnoreCase);
+
+        return Has(r.ScanCode)
+            || Has(r.Code)
+            || Has(r.Action)
+            || Has(r.WarehouseName)
+            || Has(r.UserName)
+            || r.Quantity.ToString().Contains(q, StringComparison.OrdinalIgnoreCase)
+            || r.Timestamp.ToString().Contains(q, StringComparison.OrdinalIgnoreCase);
+    }
+
     async Task Delete(int id)
     {
         pendingDeleteId = id;
         var rec = records?.FirstOrDefault(x => x.Id == id);
-        deleteMessage = rec is null
-            ? "Delete this record?"
-            : $"Inventory record #{rec.Id} (Code: {rec.Code})?";
+        deleteMessage = rec is null ? "Delete this record?" : $"Inventory record #{rec.Id} (Code: {rec.Code})?";
         showDeleteDialog = true;
         await Task.CompletedTask;
     }
