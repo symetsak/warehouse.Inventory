@@ -16,6 +16,7 @@ namespace Infrastructure.Persistence
         public DbSet<Inventory> Inventories { get; set; }
         public DbSet<User> Users { get; set; }
         public DbSet<RefreshToken> RefreshTokens { get; set; }
+        public DbSet<ProductBarcode> ProductBarcodes => Set<ProductBarcode>();
 
 
         protected override void OnModelCreating(ModelBuilder modelBuilder)
@@ -163,7 +164,15 @@ namespace Infrastructure.Persistence
                       .OnDelete(DeleteBehavior.Cascade);
             });
 
+            // --- Barcode ---
+            modelBuilder.Entity<ProductBarcode>()
+                .HasIndex(x => x.Code).IsUnique();
 
+            modelBuilder.Entity<ProductBarcode>()
+                .HasOne(x => x.Product)
+                .WithMany(p => p.Barcodes)
+                .HasForeignKey(x => x.ProductId)
+                .OnDelete(DeleteBehavior.Cascade);
         }
     }
 }

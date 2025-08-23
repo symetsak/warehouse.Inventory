@@ -1,0 +1,75 @@
+﻿@implements IAsyncDisposable
+@inject IJSRuntime Js
+
+@if (Visible)
+{
+    <div class="modal-backdrop show"></div>
+    <div class="modal d-block" tabindex="-1">
+        <div class="modal-dialog modal-lg">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title">Scan barcode (camera)</h5>
+                    <button type="button" class="btn-close" @onclick="Close"></button>
+                </div>
+                <div class="modal-body">
+                    <div @ref="containerRef" style="width:100%;aspect-ratio:16/9;background:#000;border-radius:.5rem;"></div>
+                    <div class="small text-muted mt-2">Απαιτείται HTTPS σε κινητό.</div>
+                </div>
+                <div class="modal-footer">
+                    <button class="btn btn-secondary" @onclick="Close">Close</button>
+                </div>
+            </div>
+        </div>
+    </div>
+}
+
+@code {
+    [Parameter] public bool Visible { get; set; }
+    [Parameter] public EventCallback<bool> VisibleChanged { get; set; }
+    [Parameter] public EventCallback<string> OnResult { get; set; }
+
+    private ElementReference containerRef;
+    private DotNetObjectReference<ScanDialog>? selfRef;
+    private bool started;
+
+    protected override void OnInitialized()
+        => selfRef = DotNetObjectReference.Create(this);
+
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (Visible && !started)
+        {
+            // ξεκίνα ΜΕΤΑ το render του container
+            await Js.InvokeVoidAsync("barcodeCamera.start", containerRef, selfRef, 15);
+            started = true;
+        }
+    }
+
+    [JSInvokable]
+    public async Task JsBarcodeScanned(string code)
+    {
+        await Js.InvokeVoidAsync("barcodeUX.feedback");
+        if (OnResult.HasDelegate) await OnResult.InvokeAsync(code?.Trim());
+        await Close();
+    }
+
+    private async Task Close()
+    {
+        await SafeStopAsync();
+        if (VisibleChanged.HasDelegate) await VisibleChanged.InvokeAsync(false);
+        StateHasChanged();
+    }
+
+    private async Task SafeStopAsync()
+    {
+        if (!started) return;
+        try { await Js.InvokeVoidAsync("barcodeCamera.stop"); } catch { }
+        started = false;
+    }
+
+    public async ValueTask DisposeAsync()
+    {
+        await SafeStopAsync();
+        selfRef?.Dispose();
+    }
+}
