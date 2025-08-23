@@ -159,5 +159,32 @@ namespace WebApi.Controllers
 
             return NoContent();
         }
+
+        // GET: api/Products/by-barcode/1234567890123
+        [HttpGet("by-barcode/{code}")]
+        public async Task<ActionResult<ProductDto>> GetByBarcode(string code)
+        {
+            code = (code ?? string.Empty).Trim();
+
+            var dto = await _db.ProductBarcodes
+                .Where(b => b.Code == code)
+                .Select(b => new ProductDto
+                {
+                    Id = b.Product.Id,
+                    Code = b.Product.Code,
+                    Name = b.Product.Name,
+                    Description = b.Product.Description,
+                    Unit = b.Product.Unit,
+                    Quantity = b.Product.Quantity,
+                    Price = b.Product.Price,
+                    TotalValue = b.Product.TotalValue,
+                    WarehouseId = b.Product.WarehouseId,
+                    WarehouseName = b.Product.Warehouse!.Name
+                })
+                .FirstOrDefaultAsync();
+
+            return dto is null ? NotFound() : Ok(dto);
+        }
+
     }
 }

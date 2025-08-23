@@ -12,6 +12,8 @@
         public decimal TotalValue { get; set; }    // Price * Quantity (μπορείς να το υπολογίζεις σε service)
         public required int WarehouseId { get; set; }
         public Warehouse? Warehouse { get; set; }
+        public ICollection<ProductBarcode> Barcodes { get; set; } = new List<ProductBarcode>();
+
     }
 }
 

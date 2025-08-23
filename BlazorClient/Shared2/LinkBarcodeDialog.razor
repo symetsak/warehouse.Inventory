@@ -1,0 +1,87 @@
+﻿@using BlazorClient.Services
+@using Shared.DTOs
+@using System.Linq
+@inject IProductService ProductService
+@inject IBarcodeService BarcodeService
+
+@if (Visible)
+{
+    <div class="modal-backdrop show"></div>
+    <div class="modal d-block" tabindex="-1">
+        <div class="modal-dialog">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title">Αντιστοίχιση barcode</h5>
+                    <button type="button" class="btn-close" @onclick="Close"></button>
+                </div>
+                <div class="modal-body">
+                    <div class="mb-2">
+                        <label class="form-label">Barcode</label>
+                        <input class="form-control" value="@ScannedCode" disabled />
+                    </div>
+                    <div class="mb-2">
+                        <label class="form-label">Προϊόν</label>
+                        <InputSelect @bind-Value="selectedProductId" class="form-select">
+                            <option value="">-- Επιλογή προϊόντος --</option>
+                            @foreach (var p in products)
+                            {
+                                <option value="@p.Id">@p.Code — @p.Name</option>
+                            }
+                        </InputSelect>
+                    </div>
+                    <div class="form-check">
+                        <InputCheckbox @bind-Value="isPrimary" class="form-check-input" />
+                        <label class="form-check-label">Primary barcode</label>
+                    </div>
+                    @if (!string.IsNullOrEmpty(error))
+                    {
+                        <div class="text-danger mt-2">@error</div>
+                    }
+                </div>
+                <div class="modal-footer">
+                    <button class="btn btn-secondary" @onclick="Close">Cancel</button>
+                    <button class="btn btn-primary" @onclick="Save" disabled="@(!CanSave)">Save</button>
+                </div>
+            </div>
+        </div>
+    </div>
+}
+
+@code {
+    [Parameter] public bool Visible { get; set; }
+    [Parameter] public EventCallback<bool> VisibleChanged { get; set; }
+    [Parameter] public string ScannedCode { get; set; } = "";
+    [Parameter] public EventCallback<(int productId, string code)> OnLinked { get; set; }
+
+    private List<ProductDto> products = new();
+    private int? selectedProductId;
+    private bool isPrimary = true;
+    private string? error;
+
+    protected override async Task OnParametersSetAsync()
+    {
+        if (Visible)
+        {
+            products = (await ProductService.GetAllAsync()).ToList();
+            error = null;
+        }
+    }
+
+    private bool CanSave => selectedProductId.HasValue && !string.IsNullOrWhiteSpace(ScannedCode);
+
+    private async Task Save()
+    {
+        var ok = await BarcodeService.CreateAsync(selectedProductId!.Value, ScannedCode, "CODE128", isPrimary);
+        if (!ok) { error = "Αποτυχία αποθήκευσης (ίσως υπάρχει ήδη)."; return; }
+
+        if (OnLinked.HasDelegate)
+            await OnLinked.InvokeAsync((selectedProductId!.Value, ScannedCode));
+
+        await Close();
+    }
+
+    private async Task Close()
+    {
+        if (VisibleChanged.HasDelegate) await VisibleChanged.InvokeAsync(false);
+    }
+}

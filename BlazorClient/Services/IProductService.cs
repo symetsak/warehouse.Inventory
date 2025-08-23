@@ -9,5 +9,7 @@ namespace BlazorClient.Services
         Task<ProductDto> CreateAsync(CreateProductDto dto);
         Task UpdateAsync(int id, CreateProductDto dto);
         Task DeleteAsync(int id);
+        Task<ProductDto?> GetByBarcodeAsync(string code);
+
     }
 }

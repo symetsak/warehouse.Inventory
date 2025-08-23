@@ -48,6 +48,7 @@ namespace BlazorClient
             // Services DI
             // ========================
             builder.Services.AddScoped<IProductService, ProductService>();
+            builder.Services.AddScoped<IBarcodeService, BarcodeService>();
             builder.Services.AddScoped<IWarehouseService, WarehouseService>();
             builder.Services.AddScoped<IUserService, UserService>();
             builder.Services.AddScoped<IInventoryService, InventoryService>();

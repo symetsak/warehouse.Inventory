@@ -3,6 +3,7 @@
 @using BlazorClient.Services
 @using BlazorClient.Services.Auth
 @using Microsoft.AspNetCore.Authorization
+@using Microsoft.AspNetCore.Components.Web   <!-- KeyboardEventArgs -->
 @using Shared.DTOs
 @inject IInventoryService InventoryService
 @inject IProductService ProductService
@@ -20,9 +21,21 @@
             <ValidationSummary />
 
             <div class="edit-body two-col">
+                <!-- ScanCode + Camera Scan button -->
                 <div class="form-block">
                     <label>ScanCode</label>
-                    <InputText @bind-Value="model.ScanCode" class="form-control" />
+                    <div class="input-group">
+                        <InputText @bind-Value="model.ScanCode"
+                                   class="form-control"
+                                   @onkeydown:stopPropagation
+                                   @onkeyup="OnScanEnter" />
+                        <button type="button"
+                                class="btn btn-outline-primary"
+                                title="Scan with camera"
+                                @onclick="() => scanVisible = true">
+                            Scan
+                        </button>
+                    </div>
                 </div>
 
                 <div class="form-block">
@@ -71,13 +84,28 @@
     </div>
 </div>
 
+<!-- Camera scanner modal -->
+<ScanDialog Visible="@scanVisible"
+            VisibleChanged="v => scanVisible = v"
+            OnResult="OnCameraScanned" />
+
+<!-- Dialog αντιστοίχισης barcode όταν είναι άγνωστο -->
+<LinkBarcodeDialog Visible="@linkVisible"
+                   VisibleChanged="v => linkVisible = v"
+                   ScannedCode="@pendingUnknownCode"
+                   OnLinked="OnBarcodeLinked" />
+
 @code {
     [Parameter] public int? Id { get; set; }
 
     private CreateInventoryDto model = new();
     private List<ProductDto> products = new();
     private string? currentUserFullName;
+
     private int? _selectedProductId;
+    private bool linkVisible;            // άνοιγμα/κλείσιμο αντιστοίχισης
+    private bool scanVisible;            // άνοιγμα/κλείσιμο κάμερας
+    private string? pendingUnknownCode;  // κρατά το άγνωστο barcode
 
     private int? SelectedProductId
     {
@@ -98,7 +126,6 @@
                 model.Code = null;
                 model.WarehouseId = 0;
             }
-
             InvokeAsync(StateHasChanged);
         }
     }
@@ -120,14 +147,14 @@
             if (dto != null)
             {
                 model = new CreateInventoryDto
-                    {
-                        ScanCode = dto.ScanCode,
-                        Code = dto.Code,
-                        Action = dto.Action,
-                        Quantity = dto.Quantity,
-                        WarehouseId = dto.WarehouseId,
-                        UserId = model.UserId != 0 ? model.UserId : dto.UserId
-                    };
+                {
+                    ScanCode = dto.ScanCode,
+                    Code = dto.Code,
+                    Action = dto.Action,
+                    Quantity = dto.Quantity,
+                    WarehouseId = dto.WarehouseId,
+                    UserId = model.UserId != 0 ? model.UserId : dto.UserId
+                };
 
                 var prod = products.FirstOrDefault(x => x.Code.Equals(dto.Code, StringComparison.OrdinalIgnoreCase));
                 SelectedProductId = prod?.Id;
@@ -139,6 +166,58 @@
             model.Quantity = 0;
             SelectedProductId = null;
         }
+    }
+
+    // Keyboard scan (Enter)
+    private async Task OnScanEnter(KeyboardEventArgs e)
+    {
+        if (e.Key is not ("Enter" or "NumpadEnter")) return;
+        var code = (model.ScanCode ?? "").Trim();
+        if (string.IsNullOrWhiteSpace(code)) return;
+        await HandleBarcodeAsync(code);
+    }
+
+    // Camera scan result
+    private async Task OnCameraScanned(string code)
+    {
+        model.ScanCode = code;
+        await HandleBarcodeAsync(code);
+    }
+
+    // Κοινή ροή για keyboard & camera
+    private async Task HandleBarcodeAsync(string code)
+    {
+        var p = await ProductService.GetByBarcodeAsync(code);
+
+        if (p is not null)
+        {
+            SetSelectedProduct(p.Id);
+            return;
+        }
+
+        pendingUnknownCode = code;
+        linkVisible = true;
+        StateHasChanged();
+    }
+
+    // callback από το LinkBarcodeDialog μετά το Save
+    private Task OnBarcodeLinked((int productId, string code) e)
+    {
+        model.ScanCode = e.code;
+        SetSelectedProduct(e.productId);
+        return Task.CompletedTask;
+    }
+
+    private void SetSelectedProduct(int productId)
+    {
+        SelectedProductId = productId;
+        var p = products.FirstOrDefault(x => x.Id == productId);
+        if (p is not null)
+        {
+            model.Code = p.Code;
+            model.WarehouseId = p.WarehouseId;
+        }
+        StateHasChanged();
     }
 
     private async Task HandleValidSubmit()

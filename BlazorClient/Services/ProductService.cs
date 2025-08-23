@@ -36,5 +36,13 @@ namespace BlazorClient.Services
             var response = await _http.DeleteAsync($"api/Products/{id}");
             response.EnsureSuccessStatusCode();
         }
+        public async Task<ProductDto?> GetByBarcodeAsync(string code)
+        {
+            if (string.IsNullOrWhiteSpace(code)) return null;
+            var resp = await _http.GetAsync($"api/products/by-barcode/{Uri.EscapeDataString(code)}");
+            if (!resp.IsSuccessStatusCode) return null;
+            return await resp.Content.ReadFromJsonAsync<ProductDto>();
+        }
+
     }
 }
