@@ -1,14 +1,25 @@
 ﻿@page "/inventory-edit/{Id:int?}"
 @attribute [Authorize]
+
 @using BlazorClient.Services
 @using BlazorClient.Services.Auth
 @using Microsoft.AspNetCore.Authorization
 @using Microsoft.AspNetCore.Components.Web   <!-- KeyboardEventArgs -->
 @using Shared.DTOs
+
+@* Offline-first *@
+@using BlazorClient.Services.Offline
+@using BlazorClient.Services.Sync
+@using BlazorClient.Services.Connectivity
+
 @inject IInventoryService InventoryService
 @inject IProductService ProductService
 @inject NavigationManager NavManager
 @inject AuthService AuthService
+
+@inject IOfflineDb OfflineDb
+@inject ISyncService Sync
+@inject OnlineStatusService Online
 
 <div class="edit-container">
     <div class="edit-card">
@@ -79,6 +90,10 @@
             <div class="edit-footer">
                 <button type="submit" class="btn btn-primary">Save</button>
                 <button type="button" class="btn btn-secondary" @onclick='() => NavManager.NavigateTo("/inventory")'>Cancel</button>
+
+                <span class="ms-3 badge @(Online.IsOnline ? "bg-success" : "bg-secondary")">
+                    @(Online.IsOnline ? "Online" : "Offline")
+                </span>
             </div>
         </EditForm>
     </div>
@@ -100,6 +115,7 @@
 
     private CreateInventoryDto model = new();
     private List<ProductDto> products = new();
+    private ProductDto? selectedProduct;          // κρατάμε το τρέχον προϊόν
     private string? currentUserFullName;
 
     private int? _selectedProductId;
@@ -115,11 +131,11 @@
             if (_selectedProductId == value) return;
             _selectedProductId = value;
 
-            var p = products.FirstOrDefault(x => x.Id == value);
-            if (p is not null)
+            selectedProduct = products.FirstOrDefault(x => x.Id == value);
+            if (selectedProduct is not null)
             {
-                model.Code = p.Code;
-                model.WarehouseId = p.WarehouseId;
+                model.Code = selectedProduct.Code;
+                model.WarehouseId = selectedProduct.WarehouseId;
             }
             else
             {
@@ -158,12 +174,13 @@
 
                 var prod = products.FirstOrDefault(x => x.Code.Equals(dto.Code, StringComparison.OrdinalIgnoreCase));
                 SelectedProductId = prod?.Id;
+                selectedProduct = prod;
             }
         }
         else
         {
             model.Action = "Input";
-            model.Quantity = 0;
+            model.Quantity = 1;
             SelectedProductId = null;
         }
     }
@@ -211,21 +228,91 @@
     private void SetSelectedProduct(int productId)
     {
         SelectedProductId = productId;
-        var p = products.FirstOrDefault(x => x.Id == productId);
-        if (p is not null)
+        selectedProduct = products.FirstOrDefault(x => x.Id == productId);
+        if (selectedProduct is not null)
         {
-            model.Code = p.Code;
-            model.WarehouseId = p.WarehouseId;
+            model.Code = selectedProduct.Code;
+            model.WarehouseId = selectedProduct.WarehouseId;
         }
         StateHasChanged();
     }
 
+    // ---- Offline-first submit ----
     private async Task HandleValidSubmit()
     {
-        if (Id == null)
-            await InventoryService.CreateAsync(model);
-        else
-            await InventoryService.UpdateAsync(Id.Value, model);
+        // φτιάχνουμε ένα local snapshot για IndexedDB (με σωστό Quantity & WarehouseName)
+        var warehouseName = !string.IsNullOrWhiteSpace(selectedProduct?.WarehouseName)
+            ? selectedProduct!.WarehouseName
+            : $"#{model.WarehouseId}";
+
+        var local = new InventoryScanLocal
+        {
+            Id = Guid.NewGuid().ToString("N"),
+            ScanCode = model.ScanCode ?? string.Empty,
+            Code = model.Code ?? string.Empty,
+            Action = model.Action ?? "Input",
+            Quantity = model.Quantity,            // ΣΩΣΤΗ ποσότητα από τη φόρμα
+            WarehouseId = model.WarehouseId,
+            WarehouseName = warehouseName,        // ΠΛΗΡΕΣ ΟΝΟΜΑ
+            User = currentUserFullName ?? "-",
+            Timestamp = DateTime.UtcNow,
+            Synced = false
+        };
+        await OfflineDb.SaveScanAsync(local, enqueueForSync: false);
+
+        // EDIT mode: επιχειρούμε online, αλλιώς queue UPDATE
+        if (Id is not null)
+        {
+            try
+            {
+                await InventoryService.UpdateAsync(Id.Value, model);
+                local.Synced = true;
+                await OfflineDb.SaveScanAsync(local, enqueueForSync: false);
+            }
+            catch
+            {
+                await OfflineDb.SaveScanAsync(local, enqueueForSync: false);
+                await OfflineDb.EnqueueAsync(new PendingItem
+                {
+                    Type = "UPDATE",
+                    Endpoint = $"/api/inventory/{Id}",
+                    PayloadJson = System.Text.Json.JsonSerializer.Serialize(model),
+                    CreatedAt = DateTime.UtcNow,
+                    LocalScanId = local.Id
+                });
+            }
+
+            NavManager.NavigateTo("/inventory");
+            return;
+        }
+
+        // CREATE mode: προσπάθησε online → αλλιώς τοπική αποθήκευση + ουρά
+        if (Online.IsOnline)
+        {
+            try
+            {
+                await InventoryService.CreateAsync(model);
+                local.Synced = true;
+                await OfflineDb.SaveScanAsync(local, enqueueForSync: false);
+                NavManager.NavigateTo("/inventory");
+                return;
+            }
+            catch
+            {
+                // θα πέσει στο fallback
+            }
+        }
+
+        // Fallback: offline ή αποτυχία server
+        await OfflineDb.SaveScanAsync(local, enqueueForSync: false); // inventory_scans
+        await OfflineDb.EnqueueAsync(new PendingItem                 // ουρά προς sync με DTO payload
+        {
+            Type = "CREATE",
+            Endpoint = "/api/inventory",
+            PayloadJson = System.Text.Json.JsonSerializer.Serialize(model),
+            CreatedAt = DateTime.UtcNow,
+            LocalScanId = local.Id
+        });
 
         NavManager.NavigateTo("/inventory");
     }
