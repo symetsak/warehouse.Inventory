@@ -1,8 +1,18 @@
 ﻿@inherits LayoutComponentBase
+@implements IDisposable
+
 @using Microsoft.AspNetCore.Components.Authorization
+@using BlazorClient.Services.Connectivity
+@using BlazorClient.Services.Offline
+@using BlazorClient.Services.Sync
+
 @inject AuthenticationStateProvider AuthStateProvider
 @inject BlazorClient.Services.Auth.AuthService AuthService
 @inject NavigationManager Nav
+@inject OnlineStatusService Online
+@inject IOfflineDb OfflineDb
+@inject ISyncService Sync
+@inject PendingCounterService Pending
 
 <div class="page">
     <aside class="sidebar">
@@ -12,16 +22,36 @@
         <header class="top-row">
             <div class="topbar-brand">Warehouses Management Studio</div>
 
-            <div class="auth-status" style="margin-left:auto">
-                <AuthorizeView>
-                    <Authorized>
-                        <span>Logged in as <strong>@context.User.Identity!.Name</strong></span>
-                        <button class="btn btn-sm btn-outline-danger ms-2" @onclick="DoLogout">Logout</button>
-                    </Authorized>
-                    <NotAuthorized>
-                        <a class="btn btn-sm btn-outline-primary" href="login">Login</a>
-                    </NotAuthorized>
-                </AuthorizeView>
+            <div class="d-flex align-items-center gap-2 ms-auto">
+                <!-- Online/Offline indicator -->
+                <span class="badge @(Online.IsOnline ? "bg-success" : "bg-secondary")"
+                      title="Connection status">
+                    @(Online.IsOnline ? "Online" : "Offline")
+                </span>
+
+                <!-- Pending queue counter + manual sync -->
+                <span class="text-muted small" title="Pending items to sync">
+                    Pending: @Pending.Count
+                </span>
+                <button class="btn btn-sm btn-outline-primary"
+                        title="Sync pending now"
+                        @onclick="SyncNow"
+                        disabled="@(Pending.Count == 0)">
+                    Sync now
+                </button>
+
+                <!-- Auth status -->
+                <div class="auth-status ms-2">
+                    <AuthorizeView>
+                        <Authorized>
+                            <span>Logged in as <strong>@context.User.Identity!.Name</strong></span>
+                            <button class="btn btn-sm btn-outline-danger ms-2" @onclick="DoLogout">Logout</button>
+                        </Authorized>
+                        <NotAuthorized>
+                            <a class="btn btn-sm btn-outline-primary" href="login">Login</a>
+                        </NotAuthorized>
+                    </AuthorizeView>
+                </div>
             </div>
         </header>
 
@@ -32,9 +62,40 @@
 </div>
 
 @code {
+    protected override async Task OnInitializedAsync()
+    {
+        // αρχική τιμή από IndexedDB
+        var initial = (await OfflineDb.GetPendingAsync()).Count;
+        Pending.Set(initial);
+
+        Pending.Changed += OnPendingChanged;
+        Online.StatusChanged += OnOnlineChanged;
+    }
+
+    private void OnPendingChanged() => InvokeAsync(StateHasChanged);
+
+    private async void OnOnlineChanged(bool _)
+    {
+        // προαιρετικό: σε αλλαγή κατάστασης, μπορεί να θέλεις ένα refresh
+        var current = (await OfflineDb.GetPendingAsync()).Count;
+        Pending.Set(current);
+    }
+
+    private async Task SyncNow()
+    {
+        await Sync.SyncPendingAsync();     // θα αφαιρέσει items
+        StateHasChanged();
+    }
+
     private async Task DoLogout()
     {
         await AuthService.LogoutAsync();
         Nav.NavigateTo("login", forceLoad: true);
+    }
+
+    public void Dispose()
+    {
+        Pending.Changed -= OnPendingChanged;
+        Online.StatusChanged -= OnOnlineChanged;
     }
 }

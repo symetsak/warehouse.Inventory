@@ -1,0 +1,26 @@
+﻿@inject BlazorClient.Services.Connectivity.OnlineStatusService Online
+@inject BlazorClient.Services.Sync.ISyncService Sync
+
+@code {
+    private bool _initialized;
+
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (firstRender && !_initialized)
+        {
+            await Online.InitAsync();
+            Online.StatusChanged += async (isOnline) =>
+            {
+                if (isOnline)
+                {
+                    await Sync.SyncPendingAsync();
+                }
+            };
+            _initialized = true;
+
+            // αν ήδη online, κάνε ένα αρχικό sync
+            if (Online.IsOnline)
+                await Sync.SyncPendingAsync();
+        }
+    }
+}

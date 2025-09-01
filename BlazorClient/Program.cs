@@ -1,11 +1,16 @@
 using Microsoft.AspNetCore.Components.Authorization;
+using Microsoft.AspNetCore.Components.Web;
+using Microsoft.AspNetCore.Components.WebAssembly.Hosting;
+using System.Net.Http;
+
 using BlazorClient;
 using BlazorClient.Services;
 using BlazorClient.Services.Auth;
-using Microsoft.AspNetCore.Components.Web;
-using Microsoft.AspNetCore.Components.WebAssembly.Hosting;
-using System.Net.Http; 
 
+// offline-first services
+using BlazorClient.Services.Offline;
+using BlazorClient.Services.Sync;
+using BlazorClient.Services.Connectivity;
 
 namespace BlazorClient
 {
@@ -17,18 +22,21 @@ namespace BlazorClient
             builder.RootComponents.Add<App>("#app");
             builder.RootComponents.Add<HeadOutlet>("head::after");
 
+            // ========================
+            // Authorization (Blazor)
+            // ========================
             builder.Services.AddAuthorizationCore();
 
             // ========================
-            // Register Auth & Handler
+            // Auth services & handler
             // ========================
             builder.Services.AddScoped<AuthenticationStateProvider, CustomAuthStateProvider>();
             builder.Services.AddScoped<AuthService>();
             builder.Services.AddScoped<AuthTokenHandler>();
 
-            var apiBase = new Uri("https://localhost:7138"); // βάλε του API σου
+            var apiBase = new Uri("https://localhost:7138"); // API base URL
 
-            // 1) "Raw" client ΧΩΡΙΣ handler – θα τον χρησιμοποιεί ΜΟΝΟ ο handler για /auth/refresh
+            // 1) Raw client ΧΩΡΙΣ handler (για refresh κ.λπ.)
             builder.Services.AddHttpClient("API_NOHANDLER", client =>
             {
                 client.BaseAddress = apiBase;
@@ -41,11 +49,19 @@ namespace BlazorClient
             })
             .AddHttpMessageHandler<AuthTokenHandler>();
 
-            // Χρησιμοποιούμε το ίδιο για injection χωρίς όνομα
+            // Default HttpClient injection => "API"
             builder.Services.AddScoped(sp => sp.GetRequiredService<IHttpClientFactory>().CreateClient("API"));
 
             // ========================
-            // Services DI
+            // Offline / Sync / Connectivity services
+            // ========================
+            builder.Services.AddScoped<IOfflineDb, OfflineDb>();
+            builder.Services.AddScoped<ISyncService, SyncService>();
+            builder.Services.AddScoped<OnlineStatusService>();
+            builder.Services.AddScoped<PendingCounterService>();
+            
+            // ========================
+            // Domain services DI
             // ========================
             builder.Services.AddScoped<IProductService, ProductService>();
             builder.Services.AddScoped<IBarcodeService, BarcodeService>();
@@ -54,15 +70,14 @@ namespace BlazorClient
             builder.Services.AddScoped<IInventoryService, InventoryService>();
 
             // ========================
-            // Εκκίνηση host
+            // Build & bootstrap
             // ========================
             var host = builder.Build();
 
-            // Προσπάθησε να επισυνάψεις / ανανεώσεις το token στην εκκίνηση
+            // Προσπάθησε ανανέωση token στην εκκίνηση
             await host.Services.GetRequiredService<AuthService>().TryRefreshAsync();
 
             await host.RunAsync();
         }
     }
 }
-
