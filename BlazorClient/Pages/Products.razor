@@ -22,9 +22,9 @@
 <!-- Admin-only action buttons -->
 <AuthorizeView Roles="Admin">
     <div class="mb-3 d-flex gap-2 flex-wrap">
-        <button class="btn btn-primary" @onclick="AddProduct">Add</button>
-        <button class="btn btn-secondary" @onclick="EditProduct" disabled="@(!CanEdit)">Edit</button>
-        <button class="btn btn-danger" @onclick="DeleteProduct" disabled="@(!CanEdit)">Delete</button>
+        <button class="btn btn-primary" @onclick="AddProduct"><i class="bi bi-plus-square"></i></button>
+        <button class="btn btn-secondary" @onclick="EditProduct" disabled="@(!CanEdit)"><i class="bi bi-pencil-square"></i></button>
+        <button class="btn btn-danger" @onclick="DeleteProduct" disabled="@(!CanEdit)"><i class="bi bi-trash"></i></button>
     </div>
     <div class="mb-4 d-flex gap-2 flex-wrap">
         <button class="btn btn-success" @onclick="SaveProduct" disabled="@(!CanSave)">Save</button>

@@ -86,10 +86,10 @@ else
                                     <td class="text-end wms-row-actions">
                                         <button class="btn btn-secondary btn-sm me-1"
                                                 @onclick='() => NavManager.NavigateTo($"/inventory-edit/{r.Id}")'>
-                                            Edit
+                                            <i class="bi bi-pencil-square"></i>
                                         </button>
                                         <button class="btn btn-danger btn-sm" @onclick="() => Delete(r.Id)">
-                                            Delete
+                                            <i class="bi bi-trash"></i>
                                         </button>
                                     </td>
                                 </Authorized>

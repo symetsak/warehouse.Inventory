@@ -26,7 +26,14 @@
                 <!-- Online/Offline indicator -->
                 <span class="badge @(Online.IsOnline ? "bg-success" : "bg-secondary")"
                       title="Connection status">
-                    @(Online.IsOnline ? "Online" : "Offline")
+                    @if (Online.IsOnline)
+                    {
+                        <i class="bi bi-wifi"></i>   
+                    }
+                    else
+                    {
+                        <i class="bi bi-wifi-off"></i>
+                    }
                 </span>
 
                 <!-- Pending queue counter + manual sync -->
