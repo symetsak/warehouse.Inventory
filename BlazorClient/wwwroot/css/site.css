@@ -63,15 +63,43 @@
     border: 1px solid #ffd0d0;
 }
 
-/* header row με search δεξιά */
+/* --- Inventory header: filters + search στην ίδια σειρά --- */
 .wms-header {
     display: flex;
     align-items: center;
     justify-content: space-between;
-    gap: .75rem;
-    margin-bottom: .5rem;
+    gap: 16px;
+    flex-wrap: nowrap; /* όλα σε μία σειρά σε desktop */
 }
 
-    .wms-header .wms-search {
-        width: clamp(220px, 28vw, 420px);
+    .wms-header .filters {
+        margin-left: auto;
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        min-width: 0;
     }
+
+    /* σπάμε το width:100% του Bootstrap στα date inputs */
+    .wms-header .wms-date.form-control {
+        width: 12rem !important; /* ~192px */
+        display: inline-block;
+    }
+
+    /* πλάτος search bar στη γραμμή */
+    .wms-header .wms-search {
+        flex: 0 0 300px; /* σταθερό πλάτος */
+    }
+
+/* προαιρετικό: αφήνουμε να γίνει 2η σειρά σε μικρές οθόνες */
+@media (max-width: 992px) {
+    .wms-header {
+        flex-wrap: wrap;
+    }
+
+        .wms-header .filters {
+            width: 100%;
+            justify-content: flex-start;
+        }
+}
+

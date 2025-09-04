@@ -27,7 +27,7 @@ public class ProductBarcodesController : ControllerBase
         var codeExists = await _db.ProductBarcodes.AnyAsync(x => x.Code == code);
         if (codeExists) return Conflict("Το barcode υπάρχει ήδη.");
 
-        // αν έρχεται ως primary, κάνε τα υπόλοιπα μη-primary
+        // αν έρχεται ως primary
         if (dto.IsPrimary)
         {
             var primaries = await _db.ProductBarcodes
@@ -48,7 +48,7 @@ public class ProductBarcodesController : ControllerBase
         return Created($"/api/productbarcodes/{code}", null);
     }
 
-    // (προαιρετικό) DELETE: api/ProductBarcodes/{code}
+    // DELETE: api/ProductBarcodes/{code}
     [HttpDelete("{code}")]
     public async Task<IActionResult> Delete(string code)
     {

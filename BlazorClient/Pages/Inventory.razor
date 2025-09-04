@@ -2,6 +2,7 @@
 @attribute [Authorize]
 
 @using System
+@using System.Globalization
 @using Microsoft.AspNetCore.Authorization
 @using Microsoft.AspNetCore.Components.Authorization
 @using BlazorClient.Services
@@ -21,22 +22,37 @@
 
 <div class="wms-header">
     <h3 class="mb-0">Inventory Records</h3>
-    <input class="form-control wms-search" placeholder="Search..."
-           @bind="searchText" @bind:event="oninput" />
+
+    <div class="filters">
+        <span class="small text-nowrap">Από</span>
+        <InputDate TValue="DateTime?" @bind-Value="fromDate" class="form-control form-control-sm wms-date" />
+        <span class="small text-nowrap ms-2">Έως</span>
+        <InputDate TValue="DateTime?" @bind-Value="toDate" class="form-control form-control-sm wms-date" />
+        <button class="btn btn-outline-secondary btn-sm ms-1" @onclick="ClearFilters">Reset</button>
+
+        <input class="form-control wms-search ms-2" placeholder="Search..."
+               @bind="searchText" @bind:event="oninput" />
+    </div>
 </div>
 
-<!-- Create: μόνο Admin & Employee -->
 <AuthorizeView Roles="Admin,Employee">
-    <button class="btn btn-primary mb-3" @onclick='() => NavManager.NavigateTo("/inventory-edit")'>
-        Create New Inventory
-    </button>
+    <div class="mt-2 mb-3 d-flex gap-2 flex-wrap">
+        <button class="btn btn-primary" @onclick='() => NavManager.NavigateTo("/inventory-edit")'>
+            Create New Inventory
+        </button>
+
+        <button class="btn btn-success" @onclick="ExportXlsx">
+            <i class="bi bi-download me-1"></i>
+            Export as Excel
+        </button>
+    </div>
 </AuthorizeView>
 
 @if (records is null)
 {
     <p><em>Loading...</em></p>
 }
-else if (!FilteredRecords.Any())
+else if (!VisibleRecords.Any())
 {
     <p>No records found.</p>
 }
@@ -62,7 +78,7 @@ else
                     </tr>
                 </thead>
                 <tbody>
-                    @foreach (var r in FilteredRecords)
+                    @foreach (var r in VisibleRecords)
                     {
                         <tr>
                             <td>@r.ScanCode</td>
@@ -100,17 +116,51 @@ else
             </table>
         </div>
     </div>
+
+    @if (TotalFilteredCount > visibleCount)
+    {
+        <div class="mt-2">
+            <button class="btn btn-outline-primary" @onclick="LoadMore">Περισσότερα...</button>
+            <span class="text-muted small ms-2">@visibleCount από @TotalFilteredCount</span>
+        </div>
+    }
 }
 
-<BlazorClient.Shared2.ConfirmDialog Visible="showDeleteDialog"
-                                    Title="Are you sure to delete ?"
-                                    Message="@deleteMessage"
-                                    OnConfirm="ConfirmDelete"
-                                    OnCancel="CancelDelete" />
+<ConfirmDialog Visible="showDeleteDialog"
+               Title="Are you sure to delete ?"
+               Message="@deleteMessage"
+               OnConfirm="ConfirmDelete"
+               OnCancel="CancelDelete" />
 
 @code {
     private List<InventoryDto>? records;
-    private string searchText = string.Empty;
+
+    // ---- Paging (10-10) ----
+    private const int pageSize = 10;
+    private int visibleCount = pageSize;
+
+    // Search με reset paging
+    private string _searchText = string.Empty;
+    private string searchText
+    {
+        get => _searchText;
+        set { if (_searchText != value) { _searchText = value; ResetPaging(); } }
+    }
+
+    // Φίλτρα ημερομηνιών με reset paging
+    private DateTime? _fromDate;
+    private DateTime? fromDate
+    {
+        get => _fromDate;
+        set { if (_fromDate != value) { _fromDate = value; ResetPaging(); } }
+    }
+
+    private DateTime? _toDate;
+    private DateTime? toDate
+    {
+        get => _toDate;
+        set { if (_toDate != value) { _toDate = value; ResetPaging(); } }
+    }
 
     private bool showDeleteDialog;
     private string deleteMessage = string.Empty;
@@ -121,7 +171,7 @@ else
         // Daily reset: κράτα μόνο τα σημερινά snapshots
         await OfflineDb.PurgeScansExceptTodayAsync();
 
-        // 1) Φέρε από local DB (offline-first)
+        // 1) Local (offline-first)
         var local = await OfflineDb.GetScansAsync();
         records = local
             .OrderByDescending(l => l.Timestamp)
@@ -130,45 +180,51 @@ else
                 ScanCode = l.ScanCode,
                 Code = l.Code,
                 Action = l.Action,
-                Quantity = l.Quantity,                                // FIX #1: σωστή ποσότητα
+                Quantity = l.Quantity,
                 Timestamp = l.Timestamp,
-                WarehouseName = string.IsNullOrWhiteSpace(l.WarehouseName)
-                                ? $"#{l.WarehouseId}"                // FIX #2: πλήρες όνομα αν υπάρχει, αλλιώς fallback
-                                : l.WarehouseName,
+                WarehouseName = string.IsNullOrWhiteSpace(l.WarehouseName) ? $"#{l.WarehouseId}" : l.WarehouseName,
                 UserName = l.User
             })
             .ToList();
 
-        // 2) Αν είμαστε online, μπορείς να φορτώσεις από API (όπως το είχες)
-        //    Αν προτιμάς καθαρά local view, σχολίασε το block.
+        // 2) Server (αν είμαστε online)
         if (Online.IsOnline)
         {
             try
             {
                 var server = await InventoryService.GetAllAsync();
                 if (server is not null)
-                {
-                    records = server.ToList();
-                }
+                    records = server.OrderByDescending(x => x.Timestamp).ToList();
             }
             catch
             {
                 // ignore — μένουμε με τα τοπικά
             }
         }
+
+        ResetPaging();
     }
 
-    // Προβολή μετά από φιλτράρισμα
+    // Βάση: Φίλτρα + Search + DESC
     private IEnumerable<InventoryDto> FilteredRecords =>
-        string.IsNullOrWhiteSpace(searchText)
-        ? records ?? Enumerable.Empty<InventoryDto>()
-        : (records ?? Enumerable.Empty<InventoryDto>())
-            .Where(Matches);
+        (records ?? Enumerable.Empty<InventoryDto>())
+            .Where(InDateRange)
+            .Where(Matches)
+            .OrderByDescending(r => r.Timestamp);
 
-    // Αναζήτηση σε όλα τα πεδία
+    // Ό,τι εμφανίζεται τώρα (paging)
+    private IEnumerable<InventoryDto> VisibleRecords => FilteredRecords.Take(visibleCount);
+
+    private int TotalFilteredCount => FilteredRecords.Count();
+
+    private void LoadMore() => visibleCount += pageSize;
+
+    private void ResetPaging() => visibleCount = pageSize;
+
+    // Search σε όλα τα πεδία
     private bool Matches(InventoryDto r)
     {
-        var q = searchText.Trim();
+        var q = searchText?.Trim() ?? string.Empty;
         if (q.Length == 0) return true;
 
         bool Has(string? s) => !string.IsNullOrEmpty(s) &&
@@ -179,8 +235,32 @@ else
             || Has(r.Action)
             || Has(r.WarehouseName)
             || Has(r.UserName)
-            || r.Quantity.ToString().Contains(q, StringComparison.OrdinalIgnoreCase)
+            || r.Quantity.ToString(CultureInfo.InvariantCulture).Contains(q, StringComparison.OrdinalIgnoreCase)
             || r.Timestamp.ToString().Contains(q, StringComparison.OrdinalIgnoreCase);
+    }
+
+    // Φίλτρο ημερομηνιών (Έως περιλαμβάνει όλη την ημέρα)
+    private bool InDateRange(InventoryDto r)
+    {
+        if (!fromDate.HasValue && !toDate.HasValue) return true;
+
+        var ts = r.Timestamp;
+
+        if (fromDate.HasValue && ts < fromDate.Value.Date)
+            return false;
+
+        if (toDate.HasValue && ts > toDate.Value.Date.AddDays(1).AddTicks(-1))
+            return false;
+
+        return true;
+    }
+
+    private void ClearFilters()
+    {
+        fromDate = null;
+        toDate = null;
+        searchText = string.Empty;
+        ResetPaging();
     }
 
     async Task Delete(int id)
@@ -201,16 +281,19 @@ else
             try
             {
                 await InventoryService.DeleteAsync(pendingDeleteId);
-                records = (await InventoryService.GetAllAsync()).ToList();
+                records = (await InventoryService.GetAllAsync())
+                    .OrderByDescending(x => x.Timestamp)
+                    .ToList();
+                ResetPaging();
                 return;
             }
             catch
             {
-                // πέφτουμε στο offline fallback
+                // offline fallback
             }
         }
 
-        // offline fallback: βάζουμε σε pending_sync
+        // offline fallback: enqueue
         await OfflineDb.EnqueueAsync(new PendingItem
         {
             Type = "DELETE",
@@ -219,9 +302,35 @@ else
             CreatedAt = DateTime.UtcNow
         });
 
-        // προαιρετικά αφαίρεσε τοπικά για να φύγει από τη λίστα
         records = records?.Where(x => x.Id != pendingDeleteId).ToList();
+        ResetPaging();
     }
 
     private void CancelDelete() => showDeleteDialog = false;
+
+    // === Export .xlsx με SheetJS, βασισμένο στα ΟΡΑΤΑ rows ===
+    private async Task ExportXlsx()
+    {
+        var rows = VisibleRecords.ToList();
+        if (!rows.Any()) return;
+
+        string[] headers = new[]
+        {
+            "ScanCode","Code","Action","Quantity","Timestamp","Warehouse","User"
+        };
+
+        var data = rows.Select(r => new object?[]
+        {
+            r.ScanCode,
+            r.Code,
+            r.Action,
+            r.Quantity,
+            r.Timestamp.ToString("yyyy-MM-dd HH:mm:ss", CultureInfo.InvariantCulture),
+            r.WarehouseName,
+            r.UserName
+        }).ToList();
+
+        var fileName = $"inventory_{DateTime.Now:yyyyMMdd_HHmmss}.xlsx";
+        await JsRuntime.InvokeVoidAsync("exportXlsx", fileName, headers, data);
+    }
 }
