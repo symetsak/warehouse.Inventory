@@ -143,7 +143,7 @@ namespace Infrastructure.Persistence
                 new Product { Id = 3, Code = "PRD003", Name = "Μολύβι HB", Description = "Ξύλινο", Unit = "pcs", Quantity = 200, Price = 0.25m, TotalValue = 50m, WarehouseId = 2 }
             );
 
-            // --- (προαιρετικά) Seed Inventory Records ---
+            // --- Seed Inventory Records ---
             modelBuilder.Entity<Inventory>().HasData(
                 new Inventory{ Id = 1,ScanCode = "SCN1001",Code = "PRD001", Action = "Input", WarehouseId = 1, UserId = 1,Timestamp = new DateTime(2025, 8, 1, 9, 0, 0, DateTimeKind.Utc) },
                 new Inventory{ Id = 2, ScanCode = "SCN1002",Code = "PRD002", Action = "Input", WarehouseId = 1, UserId = 2,Timestamp = new DateTime(2025, 8, 1, 10, 0, 0, DateTimeKind.Utc) }
