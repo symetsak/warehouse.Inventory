@@ -1,4 +1,4 @@
-﻿@* Navigation Menu with header *@
+﻿@* NavMenu.razor *@
 <div class="nav-header">
     <span class="nav-title">WMS</span>
     <button class="nav-toggle" @onclick="ToggleNavMenu">≡</button>
@@ -6,15 +6,15 @@
 
 <div class="nav-scrollable @NavMenuCssClass">
     <nav class="flex-column">
-        <div class="nav-item">
-            <NavLink class="nav-link" href="" Match="NavLinkMatch.All">
-                <span class="bi bi-house-door-fill"></span>
-                <span class="ms-2">Home</span>
-            </NavLink>
-        </div>
-
         <AuthorizeView>
             <Authorized Context="auth">
+                <div class="nav-item">
+                    <NavLink class="nav-link" href="" Match="NavLinkMatch.All">
+                        <span class="bi bi-house-door-fill"></span>
+                        <span class="ms-2">Home</span>
+                    </NavLink>
+                </div>
+
                 <div class="nav-item">
                     <NavLink class="nav-link" href="products" Match="NavLinkMatch.Prefix">
                         <span class="bi bi-box-seam"></span>
@@ -40,6 +40,16 @@
                     </NavLink>
                 </div>
             </Authorized>
+
+            @* Optional: δείξε μόνο link για Login όταν δεν είναι authenticated *@
+            <NotAuthorized>
+                <div class="nav-item">
+                    <NavLink class="nav-link" href="login" Match="NavLinkMatch.All">
+                        <span class="bi bi-box-arrow-in-right"></span>
+                        <span class="ms-2">Login</span>
+                    </NavLink>
+                </div>
+            </NotAuthorized>
         </AuthorizeView>
     </nav>
 </div>
