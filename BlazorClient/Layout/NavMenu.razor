@@ -3,6 +3,7 @@
     <span class="nav-title">WMS</span>
     <button class="nav-toggle" @onclick="ToggleNavMenu">≡</button>
 </div>
+
 <div class="nav-scrollable @NavMenuCssClass">
     <nav class="flex-column">
         <div class="nav-item">
@@ -11,8 +12,9 @@
                 <span class="ms-2">Home</span>
             </NavLink>
         </div>
+
         <AuthorizeView>
-            <Authorized>
+            <Authorized Context="auth">
                 <div class="nav-item">
                     <NavLink class="nav-link" href="products" Match="NavLinkMatch.Prefix">
                         <span class="bi bi-box-seam"></span>

@@ -1,16 +1,15 @@
+using BlazorClient;
+using BlazorClient.Services;
+using BlazorClient.Services.Announcements;
+using BlazorClient.Services.Auth;
+using BlazorClient.Services.Connectivity;
+// offline-first services
+using BlazorClient.Services.Offline;
+using BlazorClient.Services.Sync;
 using Microsoft.AspNetCore.Components.Authorization;
 using Microsoft.AspNetCore.Components.Web;
 using Microsoft.AspNetCore.Components.WebAssembly.Hosting;
 using System.Net.Http;
-
-using BlazorClient;
-using BlazorClient.Services;
-using BlazorClient.Services.Auth;
-
-// offline-first services
-using BlazorClient.Services.Offline;
-using BlazorClient.Services.Sync;
-using BlazorClient.Services.Connectivity;
 
 namespace BlazorClient
 {
@@ -68,6 +67,8 @@ namespace BlazorClient
             builder.Services.AddScoped<IWarehouseService, WarehouseService>();
             builder.Services.AddScoped<IUserService, UserService>();
             builder.Services.AddScoped<IInventoryService, InventoryService>();
+            builder.Services.AddScoped<IAnnouncementService, AnnouncementService>();
+
 
             // ========================
             // Build & bootstrap

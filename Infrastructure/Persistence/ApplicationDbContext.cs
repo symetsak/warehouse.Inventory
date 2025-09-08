@@ -6,22 +6,49 @@ namespace Infrastructure.Persistence
     public class ApplicationDbContext : DbContext
     {
         public ApplicationDbContext(DbContextOptions<ApplicationDbContext> options)
-            : base(options)
-        {
-        }
+            : base(options) { }
 
-        // DbSets για κάθε entity
         public DbSet<Product> Products { get; set; }
         public DbSet<Warehouse> Warehouses { get; set; }
         public DbSet<Inventory> Inventories { get; set; }
         public DbSet<User> Users { get; set; }
         public DbSet<RefreshToken> RefreshTokens { get; set; }
         public DbSet<ProductBarcode> ProductBarcodes => Set<ProductBarcode>();
-
+        public DbSet<Announcement> Announcements => Set<Announcement>();
 
         protected override void OnModelCreating(ModelBuilder modelBuilder)
         {
             base.OnModelCreating(modelBuilder);
+
+            // --- Announcement ---
+            modelBuilder.Entity<Announcement>(entity =>
+            {
+                entity.ToTable("Announcements");
+                entity.HasKey(a => a.Id);
+
+                entity.Property(a => a.Title)
+                      .IsRequired()
+                      .HasMaxLength(200);
+
+                entity.Property(a => a.Body)
+                      .IsRequired();
+
+                entity.Property(a => a.Date)
+                      .HasDefaultValueSql("GETUTCDATE()");
+
+                entity.Property(a => a.PublisherFullName)
+                      .IsRequired()
+                      .HasMaxLength(150);
+
+                entity.Property(a => a.IsPinned)
+                      .HasDefaultValue(false);
+
+                entity.Property(a => a.PinnedAt);
+
+                entity.HasIndex(a => a.IsPinned);
+                entity.HasIndex(a => a.Date);
+                entity.HasIndex(a => a.Title);
+            });
 
             // --- Product ---
             modelBuilder.Entity<Product>(entity =>
@@ -29,27 +56,14 @@ namespace Infrastructure.Persistence
                 entity.ToTable("Products");
                 entity.HasKey(p => p.Id);
 
-                entity.Property(p => p.Code)
-                      .IsRequired()
-                      .HasMaxLength(50);
-                entity.Property(p => p.Name)
-                      .IsRequired()
-                      .HasMaxLength(100);
-                entity.Property(p => p.Description)
-                      .HasMaxLength(500);
-                entity.Property(p => p.Unit)
-                      .IsRequired()
-                      .HasMaxLength(20);
-                entity.Property(p => p.Quantity)
-                      .IsRequired();
-                entity.Property(p => p.Price)
-                      .HasColumnType("decimal(18,2)")
-                      .IsRequired();
-                entity.Property(p => p.TotalValue)
-                      .HasColumnType("decimal(18,2)")
-                      .IsRequired();
+                entity.Property(p => p.Code).IsRequired().HasMaxLength(50);
+                entity.Property(p => p.Name).IsRequired().HasMaxLength(100);
+                entity.Property(p => p.Description).HasMaxLength(500);
+                entity.Property(p => p.Unit).IsRequired().HasMaxLength(20);
+                entity.Property(p => p.Quantity).IsRequired();
+                entity.Property(p => p.Price).HasColumnType("decimal(18,2)").IsRequired();
+                entity.Property(p => p.TotalValue).HasColumnType("decimal(18,2)").IsRequired();
 
-                // Σχέση 1:Ν με Warehouse
                 entity.HasOne(p => p.Warehouse)
                       .WithMany(w => w.Products)
                       .HasForeignKey(p => p.WarehouseId)
@@ -61,13 +75,8 @@ namespace Infrastructure.Persistence
             {
                 entity.ToTable("Warehouses");
                 entity.HasKey(w => w.Id);
-
-                entity.Property(w => w.Name)
-                      .IsRequired()
-                      .HasMaxLength(100);
-                entity.Property(w => w.Address)
-                      .IsRequired()
-                      .HasMaxLength(200);
+                entity.Property(w => w.Name).IsRequired().HasMaxLength(100);
+                entity.Property(w => w.Address).IsRequired().HasMaxLength(200);
             });
 
             // --- Inventory ---
@@ -76,20 +85,12 @@ namespace Infrastructure.Persistence
                 entity.ToTable("Inventory");
                 entity.HasKey(i => i.Id);
 
-                entity.Property(i => i.ScanCode)
-                      .HasMaxLength(100);
-                entity.Property(i => i.Code)
-                      .IsRequired()
-                      .HasMaxLength(50);
-                entity.Property(i => i.Action)
-                      .IsRequired()
-                      .HasMaxLength(10); // “Input” / “Output”
-                entity.Property(i => i.Quantity)
-                      .IsRequired();
-                entity.Property(i => i.Timestamp)
-                      .HasDefaultValueSql("GETUTCDATE()");
+                entity.Property(i => i.ScanCode).HasMaxLength(100);
+                entity.Property(i => i.Code).IsRequired().HasMaxLength(50);
+                entity.Property(i => i.Action).IsRequired().HasMaxLength(10);
+                entity.Property(i => i.Quantity).IsRequired();
+                entity.Property(i => i.Timestamp).HasDefaultValueSql("GETUTCDATE()");
 
-                // Σχέσεις με Warehouse & User
                 entity.HasOne(i => i.Warehouse)
                       .WithMany(w => w.Inventories)
                       .HasForeignKey(i => i.WarehouseId)
@@ -107,24 +108,12 @@ namespace Infrastructure.Persistence
                 entity.ToTable("Users");
                 entity.HasKey(u => u.Id);
 
-                entity.Property(u => u.FullName)
-                      .IsRequired()
-                      .HasMaxLength(150);
-                entity.Property(u => u.Mobile)
-                      .IsRequired()
-                      .HasMaxLength(20);
-                entity.Property(u => u.Email)
-                      .IsRequired()
-                      .HasMaxLength(100);
-                entity.Property(u => u.Username)
-                      .IsRequired()
-                      .HasMaxLength(50);
-                entity.Property(u => u.PasswordHash)
-                      .IsRequired()
-                      .HasMaxLength(200);
-                entity.Property(u => u.Role)
-                      .IsRequired()
-                      .HasMaxLength(50);
+                entity.Property(u => u.FullName).IsRequired().HasMaxLength(150);
+                entity.Property(u => u.Mobile).IsRequired().HasMaxLength(20);
+                entity.Property(u => u.Email).IsRequired().HasMaxLength(100);
+                entity.Property(u => u.Username).IsRequired().HasMaxLength(50);
+                entity.Property(u => u.PasswordHash).IsRequired().HasMaxLength(200);
+                entity.Property(u => u.Role).IsRequired().HasMaxLength(50);
 
                 entity.HasIndex(u => u.Username).IsUnique();
                 entity.HasIndex(u => u.Email).IsUnique();
@@ -132,8 +121,8 @@ namespace Infrastructure.Persistence
 
             // --- Seed Warehouses ---
             modelBuilder.Entity<Warehouse>().HasData(
-            new Warehouse { Id = 1, Name = "Κεντρική Αποθήκη", Address = "Λεωφ. Αθηνών 123" },
-            new Warehouse { Id = 2, Name = "Υποκατάστημα Πειραιά", Address = "Οδός Θησέως 45" }
+                new Warehouse { Id = 1, Name = "Κεντρική Αποθήκη", Address = "Λεωφ. Αθηνών 123" },
+                new Warehouse { Id = 2, Name = "Υποκατάστημα Πειραιά", Address = "Οδός Θησέως 45" }
             );
 
             // --- Seed Products ---
@@ -143,10 +132,10 @@ namespace Infrastructure.Persistence
                 new Product { Id = 3, Code = "PRD003", Name = "Μολύβι HB", Description = "Ξύλινο", Unit = "pcs", Quantity = 200, Price = 0.25m, TotalValue = 50m, WarehouseId = 2 }
             );
 
-            // --- Seed Inventory Records ---
+            // --- Seed Inventory ---
             modelBuilder.Entity<Inventory>().HasData(
-                new Inventory{ Id = 1,ScanCode = "SCN1001",Code = "PRD001", Action = "Input", WarehouseId = 1, UserId = 1,Timestamp = new DateTime(2025, 8, 1, 9, 0, 0, DateTimeKind.Utc) },
-                new Inventory{ Id = 2, ScanCode = "SCN1002",Code = "PRD002", Action = "Input", WarehouseId = 1, UserId = 2,Timestamp = new DateTime(2025, 8, 1, 10, 0, 0, DateTimeKind.Utc) }
+                new Inventory { Id = 1, ScanCode = "SCN1001", Code = "PRD001", Action = "Input", WarehouseId = 1, UserId = 1, Timestamp = new DateTime(2025, 8, 1, 9, 0, 0, DateTimeKind.Utc) },
+                new Inventory { Id = 2, ScanCode = "SCN1002", Code = "PRD002", Action = "Input", WarehouseId = 1, UserId = 2, Timestamp = new DateTime(2025, 8, 1, 10, 0, 0, DateTimeKind.Utc) }
             );
 
             // --- RefreshToken ---
@@ -158,13 +147,14 @@ namespace Infrastructure.Persistence
                 entity.HasIndex(r => r.Token).IsUnique();
                 entity.Property(r => r.Created).IsRequired();
                 entity.Property(r => r.Expires).IsRequired();
+
                 entity.HasOne(r => r.User)
-                      .WithMany()               // ή WithMany("RefreshTokens") αν θες συλλογή στον User
+                      .WithMany()
                       .HasForeignKey(r => r.UserId)
                       .OnDelete(DeleteBehavior.Cascade);
             });
 
-            // --- Barcode ---
+            // --- ProductBarcode ---
             modelBuilder.Entity<ProductBarcode>()
                 .HasIndex(x => x.Code).IsUnique();
 
@@ -173,6 +163,17 @@ namespace Infrastructure.Persistence
                 .WithMany(p => p.Barcodes)
                 .HasForeignKey(x => x.ProductId)
                 .OnDelete(DeleteBehavior.Cascade);
+
+            // --- Seed Announcement ---
+            modelBuilder.Entity<Announcement>().HasData(
+                new Announcement
+                {
+                    Id = 1,
+                    Title = "Καλωσήρθατε στην πλατφόρμα",
+                    Body = "Από σήμερα οι ενημερώσεις θα εμφανίζονται εδώ.",
+                    Date = new DateTime(2025, 9, 1, 8, 0, 0, DateTimeKind.Utc),
+                    PublisherFullName = "Admin User"
+                });
         }
     }
 }

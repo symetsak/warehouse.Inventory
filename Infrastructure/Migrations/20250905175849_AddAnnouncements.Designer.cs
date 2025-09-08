@@ -4,6 +4,7 @@ using Infrastructure.Persistence;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
 using Microsoft.EntityFrameworkCore.Metadata;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 
 #nullable disable
@@ -11,9 +12,11 @@ using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 namespace Infrastructure.Migrations
 {
     [DbContext(typeof(ApplicationDbContext))]
-    partial class ApplicationDbContextModelSnapshot : ModelSnapshot
+    [Migration("20250905175849_AddAnnouncements")]
+    partial class AddAnnouncements
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        /// <inheritdoc />
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder
@@ -39,14 +42,6 @@ namespace Infrastructure.Migrations
                         .HasColumnType("datetime2")
                         .HasDefaultValueSql("GETUTCDATE()");
 
-                    b.Property<bool>("IsPinned")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("bit")
-                        .HasDefaultValue(false);
-
-                    b.Property<DateTime?>("PinnedAt")
-                        .HasColumnType("datetime2");
-
                     b.Property<string>("PublisherFullName")
                         .IsRequired()
                         .HasMaxLength(150)
@@ -61,8 +56,6 @@ namespace Infrastructure.Migrations
 
                     b.HasIndex("Date");
 
-                    b.HasIndex("IsPinned");
-
                     b.HasIndex("Title");
 
                     b.ToTable("Announcements", (string)null);
@@ -73,7 +66,6 @@ namespace Infrastructure.Migrations
                             Id = 1,
                             Body = "Από σήμερα οι ενημερώσεις θα εμφανίζονται εδώ.",
                             Date = new DateTime(2025, 9, 1, 8, 0, 0, 0, DateTimeKind.Utc),
-                            IsPinned = false,
                             PublisherFullName = "Admin User",
                             Title = "Καλωσήρθατε στην πλατφόρμα"
                         });
