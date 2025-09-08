@@ -28,7 +28,7 @@
                       title="Connection status">
                     @if (Online.IsOnline)
                     {
-                        <i class="bi bi-wifi"></i>   
+                        <i class="bi bi-wifi"></i>
                     }
                     else
                     {
@@ -50,11 +50,11 @@
                 <!-- Auth status -->
                 <div class="auth-status ms-2">
                     <AuthorizeView>
-                        <Authorized>
-                            <span>Logged in as <strong>@context.User.Identity!.Name</strong></span>
+                        <Authorized Context="auth">
+                            <span>Logged in as <strong>@auth.User.Identity!.Name</strong></span>
                             <button class="btn btn-sm btn-outline-danger ms-2" @onclick="DoLogout">Logout</button>
                         </Authorized>
-                        <NotAuthorized>
+                        <NotAuthorized Context="na">
                             <a class="btn btn-sm btn-outline-primary" href="login">Login</a>
                         </NotAuthorized>
                     </AuthorizeView>
@@ -83,14 +83,13 @@
 
     private async void OnOnlineChanged(bool _)
     {
-        // προαιρετικό: σε αλλαγή κατάστασης, μπορεί να θέλεις ένα refresh
         var current = (await OfflineDb.GetPendingAsync()).Count;
         Pending.Set(current);
     }
 
     private async Task SyncNow()
     {
-        await Sync.SyncPendingAsync();     // θα αφαιρέσει items
+        await Sync.SyncPendingAsync();
         StateHasChanged();
     }
 

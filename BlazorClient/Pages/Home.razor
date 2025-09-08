@@ -1,7 +1,262 @@
 ﻿@page "/"
+@page "/home"
+@attribute [Authorize(Roles = "Admin,Employee")]
 
-<PageTitle>Home</PageTitle>
+@using BlazorClient.Services.Announcements
+@using Microsoft.AspNetCore.Authorization
+@using Shared.DTOs
+@inject IAnnouncementService AnnouncementService
+@inject IJSRuntime Js
+@inject BlazorClient.Services.Auth.AuthService AuthService
 
-<h1>Hello, world!</h1>
+<h3 class="mb-2">Ενημέρωση Υπαλλήλων</h3>
+<p class="text-muted mb-3">
+    Καλώς ήρθατε στο κεντρικό ταμπλό ενημερώσεων. Εδώ εμφανίζονται οι πιο πρόσφατες ανακοινώσεις της εταιρείας.
+</p>
 
-Welcome to your new app.
+<div class="d-flex gap-2 align-items-center mb-3">
+    <AuthorizeView Roles="Admin">
+        <Authorized Context="auth">
+            <button class="btn btn-primary btn-sm" @onclick="@OpenCreate">
+                <i class="bi bi-plus-lg"></i> Νέα ανακοίνωση
+            </button>
+        </Authorized>
+    </AuthorizeView>
+</div>
+
+@if (items is null)
+{
+    <p><em>Φόρτωση...</em></p>
+}
+else if (items.Count == 0)
+{
+    <div class="alert alert-info">Δεν υπάρχουν ανακοινώσεις.</div>
+}
+else
+{
+    <ul class="list-group">
+        @foreach (var a in Ordered(items))
+        {
+            <li class="list-group-item d-flex justify-content-between align-items-center">
+                <button type="button"
+                        class="btn btn-link text-decoration-none p-0"
+                        @onclick="@(() => OpenDetails(a))">
+                    @if (a.IsPinned)
+                    {
+                        <i class="bi bi-pin-angle-fill me-2" title="Pinned" style="color:#eab308;"></i>
+                    }
+                    <strong>@a.Title</strong>
+                    <small class="text-muted ms-2">
+                        @a.Date.ToLocalTime().ToString("dd/MM/yyyy HH:mm")
+                    </small>
+                </button>
+
+                <div class="d-flex align-items-center gap-1">
+                    <AuthorizeView Roles="Admin">
+                        <Authorized Context="auth">
+                            <button class="@GetPinBtnClass(a)"
+                                    title="@(a.IsPinned ? "Unpin" : "Pin")"
+                                    @onclick="@(() => TogglePin(a))">
+                                <i class="@GetPinIconClass(a)"></i>
+                            </button>
+
+                            <button class="btn btn-sm btn-outline-danger"
+                                    title="Διαγραφή"
+                                    @onclick="@(() => AskDelete(a))">
+                                <i class="bi bi-trash"></i>
+                            </button>
+                        </Authorized>
+                    </AuthorizeView>
+                </div>
+            </li>
+        }
+    </ul>
+}
+
+@* ===== DETAILS MODAL ===== *@
+<div class="modal fade" id="announcementModal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-lg modal-dialog-scrollable">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">@selected?.Title</h5>
+                <button type="button" class="btn-close" aria-label="Close"
+                        @onclick="@(() => HideModal("announcementModal"))"></button>
+            </div>
+            <div class="modal-body">
+                @if (selected is not null)
+                {
+                    <div class="mb-2">
+                        <small class="text-muted">
+                            @selected.Date.ToLocalTime().ToString("dddd, dd/MM/yyyy HH:mm")<br>
+                                Εκδότης: @selected.PublisherFullName
+                            @if (selected.IsPinned)
+                            {
+                                <span class="ms-2 badge text-bg-warning">Pinned</span>
+                            }
+                        </small>
+                    </div>
+                    <div style="white-space: pre-wrap;">@selected.Body</div>
+                }
+            </div>
+            <div class="modal-footer">
+                <button class="btn btn-secondary" @onclick="@(() => HideModal("announcementModal"))">Κλείσιμο</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+@* ===== CREATE MODAL (Admin only) ===== *@
+<AuthorizeView Roles="Admin">
+    <Authorized Context="auth">
+        <div class="modal fade" id="createModal" tabindex="-1" aria-hidden="true">
+            <div class="modal-dialog modal-lg modal-dialog-scrollable">
+                <div class="modal-content">
+                    <div class="modal-header">
+                        <h5 class="modal-title">Νέα ανακοίνωση</h5>
+                        <button type="button" class="btn-close"
+                                @onclick="@(() => HideModal("createModal"))"></button>
+                    </div>
+                    <div class="modal-body">
+                        <EditForm Model="@draft" OnValidSubmit="@SubmitCreate">
+                            <DataAnnotationsValidator />
+                            <div class="mb-3">
+                                <label class="form-label">Τίτλος</label>
+                                <InputText class="form-control" @bind-Value="draft.Title" />
+                            </div>
+                            <div class="mb-3">
+                                <label class="form-label">Θέμα (κείμενο)</label>
+                                <InputTextArea class="form-control" rows="6" @bind-Value="draft.Body" />
+                            </div>
+
+                            @* Η Ημ/νία αφαιρέθηκε από τη φόρμα *@
+
+                            <button class="btn btn-primary" type="submit">Αποθήκευση</button>
+                            <button type="button" class="btn btn-secondary ms-2"
+                                    @onclick="@(() => HideModal("createModal"))">
+                                Ακύρωση
+                            </button>
+                        </EditForm>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </Authorized>
+</AuthorizeView>
+
+@* ===== CONFIRM DIALOG για Delete ===== *@
+<ConfirmDialog Visible="showDeleteDialog"
+               Title="Διαγραφή ανακοίνωσης"
+               Message="@deleteMessage"
+               OnConfirm="ConfirmDelete"
+               OnCancel="CancelDelete" />
+
+@code {
+    private List<AnnouncementDto>? items;
+    private AnnouncementDto? selected;
+    private AnnouncementDto draft = new();   // δεν θέτουμε Date εδώ
+
+    private string? currentUserFullName;
+
+    // ConfirmDialog state
+    private bool showDeleteDialog;
+    private int pendingDeleteId;
+    private string deleteMessage = string.Empty;
+
+    protected override async Task OnInitializedAsync()
+    {
+        var me = await AuthService.GetCurrentUserAsync();
+        currentUserFullName = me?.FullName;
+
+        await Reload();
+    }
+
+    private async Task Reload()
+    {
+        items = await AnnouncementService.GetAllAsync();
+        StateHasChanged();
+    }
+
+    // ----- helpers για Pin UI -----
+    private static IEnumerable<AnnouncementDto> Ordered(IEnumerable<AnnouncementDto> list) =>
+        list.OrderByDescending(x => x.IsPinned)
+            .ThenByDescending(x => x.Date);     // ταξινόμηση με βάση την ΗΜ/ΝΙΑ ΔΗΜΙΟΥΡΓΙΑΣ
+
+    private static string GetPinBtnClass(AnnouncementDto a) =>
+        a.IsPinned ? "btn btn-sm btn-warning" : "btn btn-sm btn-outline-warning";
+
+    private static string GetPinIconClass(AnnouncementDto a) =>
+        a.IsPinned ? "bi bi-pin-fill" : "bi bi-pin";
+
+    // ----- actions -----
+    private void OpenDetails(AnnouncementDto a)
+    {
+        selected = a;
+        ShowModal("announcementModal");
+    }
+
+    private void OpenCreate()
+    {
+        draft = new AnnouncementDto
+        {
+            Title = string.Empty,
+            Body = string.Empty,
+            PublisherFullName = currentUserFullName ?? string.Empty,
+            IsPinned = false
+            // Date θα μπει στο SubmitCreate ως Now
+        };
+        ShowModal("createModal");
+    }
+
+    private async Task SubmitCreate()
+    {
+        // Βάλε τώρα/UTC για δημιουργία
+        draft.Date = DateTime.UtcNow;
+        if (string.IsNullOrWhiteSpace(draft.PublisherFullName))
+            draft.PublisherFullName = currentUserFullName ?? string.Empty;
+
+        await AnnouncementService.CreateAsync(draft);
+        HideModal("createModal");
+        await Reload();
+    }
+
+    private void AskDelete(AnnouncementDto a)
+    {
+        pendingDeleteId = a.Id;
+        deleteMessage = $"Θέλεις σίγουρα να διαγραφεί η ανακοίνωση \"{a.Title}\";";
+        showDeleteDialog = true;
+    }
+
+    private async Task ConfirmDelete()
+    {
+        showDeleteDialog = false;
+        await AnnouncementService.DeleteAsync(pendingDeleteId);
+        await Reload();
+    }
+    private void CancelDelete() => showDeleteDialog = false;
+
+    private async Task TogglePin(AnnouncementDto a)
+    {
+        // αισιόδοξη ενημέρωση
+        var originalPinned = a.IsPinned;
+        a.IsPinned = !a.IsPinned;
+
+        items = Ordered(items!).ToList();
+        StateHasChanged();
+
+        try
+        {
+            await AnnouncementService.TogglePinAsync(a.Id, a.IsPinned);
+        }
+        catch
+        {
+            // rollback
+            a.IsPinned = originalPinned;
+            items = Ordered(items!).ToList();
+            StateHasChanged();
+        }
+    }
+
+    // Modal helpers
+    private async void ShowModal(string id) => await Js.InvokeVoidAsync("wmsModal.show", id);
+    private async void HideModal(string id) => await Js.InvokeVoidAsync("wmsModal.hide", id);
+}
