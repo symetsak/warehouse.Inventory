@@ -2,14 +2,13 @@
 @using BlazorClient.Layout
 
 <CascadingAuthenticationState>
-    <!-- Bootstrap component: στήνει online detection & auto-sync στο app startup -->
     <SyncBootstrap />
 
     <Router AppAssembly="@typeof(Program).Assembly">
         <Found Context="routeData">
             <AuthorizeRouteView RouteData="@routeData" DefaultLayout="@typeof(MainLayout)">
                 <NotAuthorized>
-                    <RedirectToHome />
+                    <RedirectToLogin />
                 </NotAuthorized>
                 <Authorizing>
                     <p>Έλεγχος πρόσβασης...</p>
