@@ -44,5 +44,17 @@ namespace BlazorClient.Services
             var response = await _http.DeleteAsync($"api/Inventory/{id}");
             response.EnsureSuccessStatusCode();
         }
+
+        public async Task<DashboardStatsDto?> GetDashboardStatsAsync()
+        {
+            return await _http.GetFromJsonAsync<DashboardStatsDto>("api/dashboard/stats");
+        }
+
+        public async Task<List<WarehouseStatsDto>> GetWarehouseStatsAsync()
+        {
+            return await _http.GetFromJsonAsync<List<WarehouseStatsDto>>("api/dashboard/warehouse-stats")
+                   ?? new List<WarehouseStatsDto>();
+        }
     }
 }
+
