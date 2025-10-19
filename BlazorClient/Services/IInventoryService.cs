@@ -11,5 +11,8 @@ namespace BlazorClient.Services
         Task<InventoryDto> CreateAsync(CreateInventoryDto dto);
         Task UpdateAsync(int id, CreateInventoryDto dto);
         Task DeleteAsync(int id);
+        Task<DashboardStatsDto?> GetDashboardStatsAsync();
+        Task<List<WarehouseStatsDto>> GetWarehouseStatsAsync();
     }
 }
+
