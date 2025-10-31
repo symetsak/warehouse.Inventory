@@ -1,5 +1,4 @@
-﻿// base.js
-window.wmsModal = {
+﻿window.wmsModal = {
     show: (id) => {
         const el = document.getElementById(id);
         if (!el) return;

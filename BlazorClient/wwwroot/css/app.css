@@ -180,3 +180,110 @@ html, body {
 
 #blazor-error-ui { /* ... */
 }
+
+@media (max-width: 768px) {
+    /* Sidebar και main layout */
+    .page {
+        flex-direction: column;
+    }
+
+    .sidebar {
+        width: 100%;
+    }
+
+    .main > .top-row {
+        padding: 0.75rem 1rem;
+    }
+
+    .topbar-brand {
+        font-size: 1.3rem;
+    }
+
+    /* Logged in as ...  να μην κόβεται */
+    .topbar-nav {
+        flex-direction: column;
+        align-items: flex-start;
+    }
+
+        .topbar-nav .user-info {
+            width: 100%;
+            text-align: left;
+        }
+}
+
+@media (max-width: 992px) {
+
+    /* Sidebar */
+    .sidebar {
+        width: 100%;
+        padding: 0.5rem 0.75rem;
+    }
+
+    .nav-header {
+        padding: 0.5rem 1rem;
+    }
+
+        .nav-header .nav-title {
+            font-size: 1.1rem;
+        }
+
+    /* Top bar */
+    .main > .top-row {
+        padding: 0.6rem 1rem !important;
+    }
+
+    .topbar-brand {
+        font-size: 1.3rem !important;
+    }
+
+    .topbar-nav a {
+        font-size: 0.9rem;
+        padding: 0.3rem 0.6rem;
+    }
+
+    /* Main content */
+    .content {
+        padding: 0.5rem 0.75rem !important;
+    }
+
+    /* Buttons */
+    .btn {
+        padding: 0.4rem 0.6rem !important;
+        font-size: 0.9rem !important;
+    }
+
+    /* Cards / panels */
+    .card {
+        padding: 0.75rem !important;
+        margin-bottom: 0.75rem !important;
+    }
+
+    /* Titles */
+    h1, h2, h3 {
+        font-size: 1.1rem !important;
+    }
+
+    /* Small top space under topbar */
+    .main {
+        padding-top: 0 !important;
+    }
+}
+
+/* ===== Extra compact mode for small phones ===== */
+@media (max-width: 480px) {
+    .topbar-brand {
+        font-size: 1.1rem !important;
+    }
+
+    .nav-header .nav-title {
+        font-size: 1rem !important;
+    }
+
+    .topbar-nav a {
+        font-size: 0.8rem;
+    }
+
+    .content {
+        padding: 0.4rem !important;
+    }
+}

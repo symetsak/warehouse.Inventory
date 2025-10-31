@@ -41,7 +41,7 @@ namespace BlazorClient.Services.Offline
         {
             var mod = await Module();
             await mod.InvokeVoidAsync("put", "pending_sync", item);
-            _pending.Increment(); // <<< ΑΜΕΣΗ ενημέρωση badge
+            _pending.Increment(); // ΑΜΕΣΗ ενημέρωση badge
         }
 
         public async Task<List<PendingItem>> GetPendingAsync()
@@ -55,7 +55,7 @@ namespace BlazorClient.Services.Offline
         {
             var mod = await Module();
             await mod.InvokeVoidAsync("deleteKey", "pending_sync", id);
-            _pending.Decrement(); // <<< ΑΜΕΣΗ ενημέρωση badge
+            _pending.Decrement(); // ΑΜΕΣΗ ενημέρωση badge
         }
 
         public async Task MarkSyncedAsync(string scanId)

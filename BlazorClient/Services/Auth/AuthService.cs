@@ -27,7 +27,7 @@ namespace BlazorClient.Services.Auth
             _authStateProvider = (CustomAuthStateProvider)authStateProvider;
         }
 
-        // ===== DTOs matching API =====
+        // DTOs matching API
         public record LoginRequest(string Username, string Password);
         public record AuthResponse(
             string AccessToken,
@@ -40,13 +40,13 @@ namespace BlazorClient.Services.Auth
         );
         public record RefreshRequest(string RefreshToken);
 
-        // ✅ NEW: Reset-password request (ταιριάζει με το API)
+        // NEW: Reset-password request (ταιριάζει με το API)
         public record ResetPasswordRequest(string Username, string CurrentPassword, string NewPassword);
 
-        // ===== Public shape for current user =====
+        // Public shape for current user 
         public record CurrentUser(int Id, string FullName, string? Role);
 
-        // ===== LOGIN =====
+        // LOGIN
         public async Task<bool> LoginAsync(string username, string password)
         {
             var res = await _http.PostAsJsonAsync("api/Auth/login", new LoginRequest(username, password));
@@ -72,7 +72,7 @@ namespace BlazorClient.Services.Auth
             return true;
         }
 
-        // ===== LOGOUT =====
+        // LOGOUT 
         public async Task LogoutAsync()
         {
             try
@@ -93,7 +93,7 @@ namespace BlazorClient.Services.Auth
             await _authStateProvider.SetTokenAsync(null);
         }
 
-        // ===== REFRESH / ATTACH =====
+        // REFRESH / ATTACH 
         public async Task<bool> TryRefreshAsync()
         {
             var token = await _js.InvokeAsync<string?>("localStorage.getItem", TokenKey);
@@ -137,7 +137,7 @@ namespace BlazorClient.Services.Auth
 
         public async Task TryAttachTokenAsync() => _ = await TryRefreshAsync();
 
-        // ===== CURRENT USER from claims =====
+        // CURRENT USER from claims
         public async Task<CurrentUser?> GetCurrentUserAsync()
         {
             var state = await _authStateProvider.GetAuthenticationStateAsync();
@@ -161,7 +161,7 @@ namespace BlazorClient.Services.Auth
             return new CurrentUser(uid, fullName, role);
         }
 
-        // ✅ NEW: Reset password (anonymous; χρησιμοποιεί το νέο API)
+        // NEW: Reset password (anonymous; χρησιμοποιεί το νέο API)
         public async Task<(bool ok, string? message)> ResetPasswordAsync(string username, string currentPassword, string newPassword)
         {
             var res = await _http.PostAsJsonAsync("api/Auth/reset-password",

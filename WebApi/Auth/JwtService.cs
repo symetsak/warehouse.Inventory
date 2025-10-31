@@ -13,7 +13,7 @@ public class JwtService : IJwtService
 
     public string CreateToken(int userId, string username, string role, string? fullName = null, string? email = null)
     {
-        // 1) Μην κάνεις αυτόματα remap ονομάτων claims
+        // Μην κάνεις αυτόματα remap ονομάτων claims
         JwtSecurityTokenHandler.DefaultOutboundClaimTypeMap.Clear();
 
         var claims = new List<Claim>
@@ -25,7 +25,7 @@ public class JwtService : IJwtService
             new(ClaimTypes.Name, username),
             new(ClaimTypes.Role, role),
 
-            // 2) καθαρό "role" για συμβατότητα / ευκολότερο debug (jwt.io)
+            // καθαρό "role" για συμβατότητα / ευκολότερο debug (jwt.io)
             new("role", role)
         };
 

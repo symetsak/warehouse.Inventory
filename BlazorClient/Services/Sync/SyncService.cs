@@ -24,7 +24,7 @@ namespace BlazorClient.Services.Sync
 
             foreach (var item in items.OrderBy(i => i.CreatedAt))
             {
-                // Ετοίμασε σωστό HTTP request ανά τύπο
+                // Ετοιμάζει σωστό HTTP request ανά τύπο
                 HttpRequestMessage? req = item.Type switch
                 {
                     "CREATE" => new HttpRequestMessage(HttpMethod.Post, item.Endpoint)

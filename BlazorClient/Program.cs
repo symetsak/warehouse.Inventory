@@ -35,13 +35,13 @@ namespace BlazorClient
 
             var apiBase = new Uri("https://localhost:7138"); // API base URL
 
-            // 1) Raw client ΧΩΡΙΣ handler (για refresh κ.λπ.)
+            // Raw client ΧΩΡΙΣ handler (για refresh κ.λπ.)
             builder.Services.AddHttpClient("API_NOHANDLER", client =>
             {
                 client.BaseAddress = apiBase;
             });
 
-            // 2) Κανονικός client ΜΕ handler – όλα τα calls της εφαρμογής
+            // Κανονικός client ΜΕ handler – όλα τα calls της εφαρμογής
             builder.Services.AddHttpClient("API", client =>
             {
                 client.BaseAddress = apiBase;

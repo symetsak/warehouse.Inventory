@@ -16,7 +16,7 @@
 
 <div class="container mt-4">
 
-    <!-- ===== Πρώτη Ενότητα: Στατιστικά Απογραφών ===== -->
+    <!-- Στατιστικά Απογραφών -->
     <div class="row mb-4">
         <div class="col-md-4 mb-3">
             <div class="card text-center shadow-sm border-0">
@@ -46,7 +46,7 @@
         </div>
     </div>
 
-    <!-- ===== Δεύτερη Ενότητα: Στατιστικά Αποθήκης ===== -->
+    <!-- Στατιστικά Αποθήκης --> 
     <div class="row mb-4">
         <div class="col-12">
             <div class="card shadow-sm border-0">
@@ -87,7 +87,7 @@
         </div>
     </div>
 
-    <!-- ===== Τρίτη Ενότητα: Ενημέρωση Υπαλλήλων ===== -->
+    <!-- Τρίτη Ενότητα: Ενημέρωση Υπαλλήλων -->
     <h3 class="mb-2">Ενημέρωση Υπαλλήλων</h3>
     <p class="text-muted mb-3">
         Καλώς ήρθατε στο κεντρικό ταμπλό ενημερώσεων. Εδώ εμφανίζονται οι πιο πρόσφατες ανακοινώσεις της εταιρείας.
@@ -152,7 +152,7 @@
         </ul>
     }
 
-    <!-- ===== DETAILS MODAL ===== -->
+    <!-- DETAILS MODAL -->
     <div class="modal fade" id="announcementModal" tabindex="-1" aria-hidden="true">
         <div class="modal-dialog modal-lg modal-dialog-scrollable">
             <div class="modal-content">
@@ -184,7 +184,7 @@
         </div>
     </div>
 
-    <!-- ===== CREATE MODAL (Admin only) ===== -->
+    <!-- CREATE MODAL (Admin only) -->
     <AuthorizeView Roles="Admin">
         <Authorized Context="auth">
             <div class="modal fade" id="createModal" tabindex="-1" aria-hidden="true">
@@ -220,7 +220,7 @@
         </Authorized>
     </AuthorizeView>
 
-    <!-- ===== CONFIRM DIALOG ===== -->
+    <!-- CONFIRM DIALOG -->
     <ConfirmDialog Visible="showDeleteDialog"
                    Title="Διαγραφή ανακοίνωσης"
                    Message="@deleteMessage"

@@ -171,7 +171,7 @@ else
         // Daily reset: κράτα μόνο τα σημερινά snapshots
         await OfflineDb.PurgeScansExceptTodayAsync();
 
-        // 1) Local (offline-first)
+        // Local (offline-first)
         var local = await OfflineDb.GetScansAsync();
         records = local
             .OrderByDescending(l => l.Timestamp)
@@ -187,7 +187,7 @@ else
             })
             .ToList();
 
-        // 2) Server (αν είμαστε online)
+        // Server (αν είμαστε online)
         if (Online.IsOnline)
         {
             try
@@ -308,7 +308,7 @@ else
 
     private void CancelDelete() => showDeleteDialog = false;
 
-    // === Export .xlsx με SheetJS, βασισμένο στα ΟΡΑΤΑ rows ===
+    // Export .xlsx με SheetJS, βασισμένο στα ΟΡΑΤΑ rows 
     private async Task ExportXlsx()
     {
         var rows = VisibleRecords.ToList();

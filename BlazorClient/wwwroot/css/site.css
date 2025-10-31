@@ -40,10 +40,11 @@
 }
 
 /* Κελιά */
-.wms-table td, .wms-table th {
+.wms-table td,
+.wms-table th {
     vertical-align: middle;
     border-color: var(--wms-border);
-    padding: .5rem .75rem;
+    padding: 0.5rem 0.75rem;
     white-space: nowrap;
 }
 
@@ -69,7 +70,7 @@
     align-items: center;
     justify-content: space-between;
     gap: 16px;
-    flex-wrap: nowrap; /* όλα σε μία σειρά σε desktop */
+    flex-wrap: nowrap;
 }
 
     .wms-header .filters {
@@ -82,13 +83,13 @@
 
     /* σπάμε το width:100% του Bootstrap στα date inputs */
     .wms-header .wms-date.form-control {
-        width: 12rem !important; /* ~192px */
+        width: 12rem !important;
         display: inline-block;
     }
 
     /* πλάτος search bar στη γραμμή */
     .wms-header .wms-search {
-        flex: 0 0 300px; /* σταθερό πλάτος */
+        flex: 0 0 300px;
     }
 
 /* προαιρετικό: αφήνουμε να γίνει 2η σειρά σε μικρές οθόνες */
@@ -103,3 +104,184 @@
         }
 }
 
+/* ======== Mobile & Tablet Responsive Fixes ======== */
+@media (max-width: 768px) {
+
+    /* Header bar στο πάνω μέρος */
+    .top-row {
+        flex-direction: column;
+        align-items: flex-start !important;
+        gap: 0.5rem;
+        text-align: left;
+    }
+
+    .topbar-nav {
+        flex-wrap: wrap;
+        gap: 0.5rem;
+    }
+
+        .topbar-nav a {
+            padding: 0.4rem 0.6rem;
+            font-size: 0.9rem;
+        }
+
+    /* WMS Header (search + filters + buttons) */
+    .wms-header {
+        flex-direction: column !important;
+        align-items: stretch !important;
+        gap: 0.5rem;
+    }
+
+        .wms-header .filters,
+        .wms-header .wms-search {
+            width: 100% !important;
+            flex: 1 1 100% !important;
+        }
+
+            .wms-header .filters button,
+            .wms-header .filters .form-control,
+            .wms-header .wms-search input {
+                width: 100% !important;
+            }
+
+    /* Tables */
+    .wms-table-wrap {
+        overflow-x: auto;
+    }
+
+    .wms-table {
+        font-size: 0.85rem;
+    }
+
+    /* Buttons */
+    .btn,
+    button {
+        margin-bottom: 0.4rem;
+    }
+
+    /* Cards / dashboard boxes */
+    .card {
+        margin-bottom: 1rem;
+    }
+
+    /* Text wrap fix */
+    h1,
+    h2,
+    h3,
+    h4,
+    h5 {
+        word-break: break-word;
+    }
+}
+
+/* ===== Responsive alignment fix for buttons & search bar ===== */
+@media (max-width: 992px) {
+    .wms-header,
+    .toolbar,
+    .action-bar {
+        flex-direction: column !important;
+        align-items: stretch !important;
+        gap: 0.75rem !important;
+    }
+
+        .wms-header > *,
+        .toolbar > *,
+        .action-bar > * {
+            width: 100% !important;
+        }
+
+        .wms-header input[type="search"],
+        .wms-header .form-control {
+            order: -1;
+        }
+
+    .btn,
+    button {
+        width: 100% !important;
+    }
+
+        .btn + .btn {
+            margin-top: 0.25rem;
+        }
+
+    .wms-table-wrap {
+        overflow-x: auto;
+    }
+}
+
+/* ===== Inventory filters & search responsive layout fix ===== */
+@media (max-width: 992px) {
+
+    .wms-header {
+        display: flex;
+        flex-direction: column !important;
+        align-items: stretch !important;
+        gap: 0.75rem !important;
+    }
+
+        .wms-header .filters {
+            display: flex;
+            flex-direction: column !important;
+            align-items: stretch !important;
+            width: 100% !important;
+            gap: 0.5rem !important;
+            order: 1;
+        }
+
+        .wms-header .wms-search {
+            width: 100% !important;
+            order: 2;
+        }
+
+        .wms-header .filters + .btn,
+        .wms-header .filters + .action-bar,
+        .wms-header .filters + .toolbar {
+            order: 3;
+        }
+
+        .wms-header .filters input,
+        .wms-header .filters select,
+        .wms-header .filters button {
+            width: 100% !important;
+        }
+
+        .wms-header .filters .wms-date {
+            flex: 1 1 48% !important;
+        }
+
+    .btn,
+    button {
+        width: 100% !important;
+        margin-top: 0.25rem;
+    }
+
+    .wms-table-wrap {
+        overflow-x: auto;
+    }
+}
+
+/* ===== Fix: κρατά τα labels πάνω από τα date inputs και ανεβάζει ΜΟΝΟ το search ===== */
+@media (max-width: 992px) {
+    /* Αναίρεση του γενικού order για τα φίλτρα */
+    .wms-header .filters .form-control {
+        order: 0 !important;
+    }
+
+    .wms-header .filters label {
+        order: -1 !important;
+    }
+
+    /* ΜΕΤΑΚΙΝΗΣΕ μόνο το search πιο πάνω (όχι όλα τα form-control) */
+    .wms-header .wms-search,
+    .wms-header .wms-search input {
+        order: -1 !important;
+    }
+
+    /* Προαιρετικά: βεβαιώνουμε την κάθετη στοίχιση ανά group */
+    .wms-header .filters .date-group {
+        display: flex;
+        flex-direction: column;
+        width: 100%;
+        gap: .2rem;
+    }
+}

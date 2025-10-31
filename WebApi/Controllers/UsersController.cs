@@ -57,7 +57,6 @@ namespace WebApi.Controllers
         [HttpPost]
         public async Task<ActionResult<UserDto>> Create(CreateUserDto dto)
         {
-            // (εδώ μπορείς να προσθέσεις validation ή hashing του password)
             var entity = new User
             {
                 FullName = dto.FullName,

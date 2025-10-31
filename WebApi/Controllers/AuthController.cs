@@ -24,7 +24,7 @@ public class AuthController : ControllerBase
         _logger = logger;
     }
 
-    // ===== DTOs =====
+    // DTOs 
     public record LoginRequest(string Username, string Password);
     public record RefreshRequest(string RefreshToken);
     public record AuthResponse(

@@ -42,7 +42,7 @@ namespace BlazorClient.Services.Auth
 
         protected override async Task<HttpResponseMessage> SendAsync(HttpRequestMessage request, CancellationToken cancellationToken)
         {
-            // 1) Βάλε Authorization αν έχουμε έγκυρο access
+            // Authorization αν έχουμε έγκυρο access
             var token = await _js.InvokeAsync<string?>("localStorage.getItem", TokenKey);
             var expIso = await _js.InvokeAsync<string?>("localStorage.getItem", ExpKey);
 
@@ -61,10 +61,10 @@ namespace BlazorClient.Services.Auth
                     request.Headers.Authorization = new AuthenticationHeaderValue("Bearer", token);
             }
 
-            // 2) Εκτέλεση
+            // Εκτέλεση
             var response = await base.SendAsync(request, cancellationToken);
 
-            // 3) Αν 401 → δοκίμασε ΜΙΑ φορά refresh + retry
+            // Αν 401 → ΜΙΑ φορά refresh + retry
             if (response.StatusCode == HttpStatusCode.Unauthorized)
             {
                 var refreshed = await TryRefreshAsync(cancellationToken);

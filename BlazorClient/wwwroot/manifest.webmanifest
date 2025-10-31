@@ -1,6 +1,6 @@
 {
-  "name": "BlazoeClient",
-  "short_name": "BlazoeClient",
+  "name": "BlazorClient",
+  "short_name": "BlazorClient",
   "id": "./",
   "start_url": "./",
   "display": "standalone",

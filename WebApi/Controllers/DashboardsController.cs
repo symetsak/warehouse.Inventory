@@ -72,8 +72,7 @@ namespace WebApi.Controllers
                     WarehouseId = g.Key.WarehouseId,
                     WarehouseName = g.Key.Name,
                     ProductCount = g.Count(),
-                    TotalValue = g.Sum(x => x.TotalValue) // (ή x.Quantity * x.Price) αν δεν θες το αποθηκευμένο TotalValue
-                                                          // TotalQuantity = g.Sum(x => x.Quantity)
+                    TotalValue = g.Sum(x => x.TotalValue) 
                 })
                 .OrderBy(s => s.WarehouseName)
                 .ToListAsync();

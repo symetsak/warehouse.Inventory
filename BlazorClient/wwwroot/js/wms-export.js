@@ -1,6 +1,4 @@
-﻿// wwwroot/js/wms-export.js
-// Απαιτεί να έχει φορτωθεί πρώτα το SheetJS (xlsx.full.min.js)
-(function () {
+﻿(function () {
     if (!window.XLSX) {
         console.error("SheetJS (XLSX) is not loaded.");
         return;

@@ -1,7 +1,4 @@
-﻿// wwwroot/js/barcode.js
-// Requires html5-qrcode v2+: <script src="https://unpkg.com/html5-qrcode@2.3.8/html5-qrcode.min.js"></script>
-
-window.barcodeCamera = (function () {
+﻿window.barcodeCamera = (function () {
     let html5QrCode = null;
     let isRunning = false;
     let dotnetRef = null;
