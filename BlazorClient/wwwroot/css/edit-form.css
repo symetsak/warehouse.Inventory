@@ -3,7 +3,7 @@
     --edit-border: #e6e8ef;
     --edit-shadow: 0 10px 30px rgba(16,24,40,.08);
     --edit-radius: 16px;
-    --edit-accent: #3b82f6; /* προσαρμόζεται στο μπλε σου */
+    --edit-accent: #3b82f6; 
 }
 
 .edit-container {
@@ -81,7 +81,7 @@
     gap: 10px;
     justify-content: flex-start;
     position: sticky;
-    bottom: 0; /* κολλάει κάτω όταν το form είναι ψηλό */
+    bottom: 0; 
 }
 
 .btn-primary {

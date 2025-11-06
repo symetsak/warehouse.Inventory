@@ -64,7 +64,7 @@
     border: 1px solid #ffd0d0;
 }
 
-/* --- Inventory header: filters + search στην ίδια σειρά --- */
+/* Inventory header: filters + search στην ίδια σειρά */
 .wms-header {
     display: flex;
     align-items: center;
@@ -92,7 +92,7 @@
         flex: 0 0 300px;
     }
 
-/* προαιρετικό: αφήνουμε να γίνει 2η σειρά σε μικρές οθόνες */
+/* Αφήνουμε να γίνει 2η σειρά σε μικρές οθόνες */
 @media (max-width: 992px) {
     .wms-header {
         flex-wrap: wrap;
@@ -271,13 +271,13 @@
         order: -1 !important;
     }
 
-    /* ΜΕΤΑΚΙΝΗΣΕ μόνο το search πιο πάνω (όχι όλα τα form-control) */
+    /* Το search πιο πάνω (όχι όλα τα form-control) */
     .wms-header .wms-search,
     .wms-header .wms-search input {
         order: -1 !important;
     }
 
-    /* Προαιρετικά: βεβαιώνουμε την κάθετη στοίχιση ανά group */
+    /* βεβαιώνουμε την κάθετη στοίχιση ανά group */
     .wms-header .filters .date-group {
         display: flex;
         flex-direction: column;
