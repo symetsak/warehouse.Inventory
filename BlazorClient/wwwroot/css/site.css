@@ -165,11 +165,7 @@
     }
 
     /* Text wrap fix */
-    h1,
-    h2,
-    h3,
-    h4,
-    h5 {
+    h1, h2, h3, h4, h5 {
         word-break: break-word;
     }
 }
@@ -211,7 +207,6 @@
 
 /* ===== Inventory filters & search responsive layout fix ===== */
 @media (max-width: 992px) {
-
     .wms-header {
         display: flex;
         flex-direction: column !important;
@@ -284,4 +279,93 @@
         width: 100%;
         gap: .2rem;
     }
+}
+
+/* ====== Products Page Layout ====== */
+.products-container {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 1.5rem;
+    overflow-x: hidden;
+}
+
+@media (max-width: 992px) {
+    .products-container {
+        display: block;
+    }
+
+    .products-list {
+        overflow-x: auto;
+    }
+
+    .table-responsive {
+        width: 100%;
+        overflow-x: auto;
+    }
+
+    .product-detail {
+        margin-top: 1rem;
+    }
+}
+
+/* ===== Header Responsive Fix (MainLayout) ===== */
+.top-row {
+    display: flex;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: 0.5rem;
+    padding: 0.5rem 1rem;
+}
+
+.topbar-brand {
+    font-weight: 600;
+    color: white;
+    flex: 1;
+    min-width: 220px;
+}
+
+.topbar-status {
+    display: flex;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: 0.5rem;
+}
+
+/* Κάνει το header πιο ευέλικτο σε κινητά */
+@media (max-width: 768px) {
+    .top-row {
+        flex-direction: column;
+        align-items: stretch;
+        text-align: center;
+    }
+
+    .topbar-status,
+    .auth-status {
+        justify-content: center;
+        width: 100%;
+    }
+
+        .auth-status .btn {
+            width: 100%;
+            max-width: 250px;
+            margin: 0 auto;
+        }
+}
+
+/* ===== Actions Buttons Responsive Fix ===== */
+.actions-cell {
+    min-width: 100px;
+    white-space: nowrap;
+}
+
+@media (max-width: 768px) {
+    .actions-cell {
+        display: block;
+        text-align: center;
+    }
+
+        .actions-cell .btn {
+            margin-bottom: 0.25rem;
+            width: 45%;
+        }
 }

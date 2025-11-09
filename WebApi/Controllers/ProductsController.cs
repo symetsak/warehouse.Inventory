@@ -35,7 +35,7 @@ namespace WebApi.Controllers
                     Price = p.Price,
                     TotalValue = p.TotalValue,
                     WarehouseId = p.WarehouseId,
-                    WarehouseName = p.Warehouse!.Name
+                    WarehouseName = p.Warehouse != null ? p.Warehouse.Name : string.Empty
 
                 })
                 .ToListAsync();
