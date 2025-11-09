@@ -16,7 +16,6 @@
 @inject IInventoryService InventoryService
 @inject NavigationManager NavManager
 @inject IJSRuntime JsRuntime
-
 @inject IOfflineDb OfflineDb
 @inject OnlineStatusService Online
 
@@ -63,6 +62,7 @@ else
             <table class="table table-striped table-hover wms-table wms-table-sm">
                 <thead>
                     <tr>
+                        <th>ID</th>
                         <th>ScanCode</th>
                         <th>Code</th>
                         <th>Action</th>
@@ -77,10 +77,12 @@ else
                         </AuthorizeView>
                     </tr>
                 </thead>
+
                 <tbody>
                     @foreach (var r in VisibleRecords)
                     {
                         <tr>
+                            <td>@r.Id</td>
                             <td>@r.ScanCode</td>
                             <td>@r.Code</td>
                             <td>
@@ -126,11 +128,15 @@ else
     }
 }
 
-<ConfirmDialog Visible="showDeleteDialog"
-               Title="Are you sure to delete ?"
-               Message="@deleteMessage"
-               OnConfirm="ConfirmDelete"
-               OnCancel="CancelDelete" />
+<!-- ✅ Confirm Dialog -->
+<BlazorClient.Shared2.ConfirmDialog 
+    Visible="showDeleteDialog"
+    Title="Διαγραφή Εγγραφής Απογραφής"
+    Message="@($"Θέλεις σίγουρα να διαγράψεις την εγγραφή #{SelectedRecord?.Id} (Κωδικός: {SelectedRecord?.Code}, ScanCode: {SelectedRecord?.ScanCode});")"
+    CancelText="Ακύρωση"
+    ConfirmText="Διαγραφή"
+    OnConfirm="ConfirmDelete"
+    OnCancel="CancelDelete" />
 
 @code {
     private List<InventoryDto>? records;
@@ -163,8 +169,7 @@ else
     }
 
     private bool showDeleteDialog;
-    private string deleteMessage = string.Empty;
-    private int pendingDeleteId;
+    private InventoryDto? SelectedRecord;
 
     protected override async Task OnInitializedAsync()
     {
@@ -177,6 +182,7 @@ else
             .OrderByDescending(l => l.Timestamp)
             .Select(l => new InventoryDto
             {
+                Id = int.TryParse(l.Id, out var parsedId) ? parsedId : 0,
                 ScanCode = l.ScanCode,
                 Code = l.Code,
                 Action = l.Action,
@@ -205,23 +211,19 @@ else
         ResetPaging();
     }
 
-    // Βάση: Φίλτρα + Search + DESC
+    // === Filtering ===
     private IEnumerable<InventoryDto> FilteredRecords =>
         (records ?? Enumerable.Empty<InventoryDto>())
             .Where(InDateRange)
             .Where(Matches)
             .OrderByDescending(r => r.Timestamp);
 
-    // Ό,τι εμφανίζεται τώρα (paging)
     private IEnumerable<InventoryDto> VisibleRecords => FilteredRecords.Take(visibleCount);
-
     private int TotalFilteredCount => FilteredRecords.Count();
-
     private void LoadMore() => visibleCount += pageSize;
-
     private void ResetPaging() => visibleCount = pageSize;
 
-    // Search σε όλα τα πεδία
+    // === Filters ===
     private bool Matches(InventoryDto r)
     {
         var q = searchText?.Trim() ?? string.Empty;
@@ -239,19 +241,14 @@ else
             || r.Timestamp.ToString().Contains(q, StringComparison.OrdinalIgnoreCase);
     }
 
-    // Φίλτρο ημερομηνιών (Έως περιλαμβάνει όλη την ημέρα)
     private bool InDateRange(InventoryDto r)
     {
         if (!fromDate.HasValue && !toDate.HasValue) return true;
-
         var ts = r.Timestamp;
-
         if (fromDate.HasValue && ts < fromDate.Value.Date)
             return false;
-
         if (toDate.HasValue && ts > toDate.Value.Date.AddDays(1).AddTicks(-1))
             return false;
-
         return true;
     }
 
@@ -263,11 +260,10 @@ else
         ResetPaging();
     }
 
-    async Task Delete(int id)
+    // === Delete Logic ===
+    private async Task Delete(int id)
     {
-        pendingDeleteId = id;
-        var rec = records?.FirstOrDefault(x => x.Id == id);
-        deleteMessage = rec is null ? "Delete this record?" : $"Inventory record #{rec.Id} (Code: {rec.Code})?";
+        SelectedRecord = records?.FirstOrDefault(x => x.Id == id);
         showDeleteDialog = true;
         await Task.CompletedTask;
     }
@@ -275,12 +271,15 @@ else
     private async Task ConfirmDelete()
     {
         showDeleteDialog = false;
+        if (SelectedRecord is null) return;
+
+        int id = SelectedRecord.Id;
 
         if (Online.IsOnline)
         {
             try
             {
-                await InventoryService.DeleteAsync(pendingDeleteId);
+                await InventoryService.DeleteAsync(id);
                 records = (await InventoryService.GetAllAsync())
                     .OrderByDescending(x => x.Timestamp)
                     .ToList();
@@ -297,27 +296,29 @@ else
         await OfflineDb.EnqueueAsync(new PendingItem
         {
             Type = "DELETE",
-            Endpoint = $"/api/inventory/{pendingDeleteId}",
+            Endpoint = $"/api/inventory/{id}",
             PayloadJson = string.Empty,
             CreatedAt = DateTime.UtcNow
         });
 
-        records = records?.Where(x => x.Id != pendingDeleteId).ToList();
+        records = records?.Where(x => x.Id != id).ToList();
         ResetPaging();
+        SelectedRecord = null;
     }
 
-    private void CancelDelete() => showDeleteDialog = false;
+    private void CancelDelete()
+    {
+        showDeleteDialog = false;
+        SelectedRecord = null;
+    }
 
-    // Export .xlsx με SheetJS, βασισμένο στα ΟΡΑΤΑ rows 
+    // === Export Excel ===
     private async Task ExportXlsx()
     {
         var rows = VisibleRecords.ToList();
         if (!rows.Any()) return;
 
-        string[] headers = new[]
-        {
-            "ScanCode","Code","Action","Quantity","Timestamp","Warehouse","User"
-        };
+        string[] headers = new[] { "ScanCode","Code","Action","Quantity","Timestamp","Warehouse","User" };
 
         var data = rows.Select(r => new object?[]
         {

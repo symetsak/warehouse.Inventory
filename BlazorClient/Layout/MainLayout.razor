@@ -19,10 +19,10 @@
         <NavMenu />
     </aside>
     <main class="main">
-        <header class="top-row">
+        <header class="top-row flex-wrap">
             <div class="topbar-brand">Warehouses Management Studio</div>
 
-            <div class="d-flex align-items-center gap-2 ms-auto">
+            <div class="topbar-status d-flex align-items-center flex-wrap gap-2 ms-auto justify-content-end">
                 <!-- Online/Offline indicator -->
                 <span class="badge @(Online.IsOnline ? "bg-success" : "bg-secondary")"
                       title="Connection status">
@@ -48,11 +48,11 @@
                 </button>
 
                 <!-- Auth status -->
-                <div class="auth-status ms-2">
+                <div class="auth-status d-flex align-items-center flex-wrap gap-2 ms-2">
                     <AuthorizeView>
                         <Authorized Context="auth">
-                            <span>Logged in as <strong>@auth.User.Identity!.Name</strong></span>
-                            <button class="btn btn-sm btn-outline-danger ms-2" @onclick="DoLogout">Logout</button>
+                            <span class="small text-light">Logged in as <strong>@auth.User.Identity!.Name</strong></span>
+                            <button class="btn btn-sm btn-outline-danger" @onclick="DoLogout">Logout</button>
                         </Authorized>
                         <NotAuthorized Context="na">
                             <a class="btn btn-sm btn-outline-primary" href="login">Login</a>
