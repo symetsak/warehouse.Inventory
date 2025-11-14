@@ -69,9 +69,11 @@ else
                             </td>
                             <AuthorizeView Roles="Admin">
                                 <Authorized>
-                                    <td class="text-end wms-row-actions">
-                                        <button class="btn btn-secondary btn-sm me-1" @onclick="() => Edit(u.Id)"><i class="bi bi-pencil-square"></i></button>
-                                        <button class="btn btn-danger btn-sm" @onclick="() => Delete(u.Id)"><i class="bi bi-trash"></i></button>
+                                    <td class="text-center actions-cell">
+                                        <div class="d-flex justify-content-center gap-2 flex-wrap">
+                                            <button class="btn btn-secondary btn-sm me-1" @onclick="() => Edit(u.Id)"><i class="bi bi-pencil-square"></i></button>
+                                            <button class="btn btn-danger btn-sm" @onclick="() => Delete(u.Id)"><i class="bi bi-trash"></i></button>
+                                        </div>
                                     </td>
                                 </Authorized>
                             </AuthorizeView>
@@ -84,12 +86,16 @@ else
 }
 
 <BlazorClient.Shared2.ConfirmDialog Visible="showDeleteDialog"
-                                    Title="Are you sure to delete ?"
-                                    Message="@deleteMessage"
+                                    Title="Διαγραφή Χρήστη"
+                                    Message="@($"Θέλεις σίγουρα να διαγράψεις τον χρήστη '{SelectedUser?.FullName}';")"
+                                    CancelText="Ακύρωση"
+                                    ConfirmText="Διαγραφή"
                                     OnConfirm="ConfirmDelete"
                                     OnCancel="CancelDelete" />
 
+
 @code {
+    private UserDto? SelectedUser;
     private List<UserDto>? users;
     private string searchText = string.Empty;
 
@@ -117,12 +123,11 @@ else
 
     async Task Delete(int id)
     {
-        pendingDeleteUserId = id;
-        var u = users?.FirstOrDefault(x => x.Id == id);
-        deleteMessage = u is null ? "Delete this user?" : $"User \"@{u.Username}\" ({u.FullName})?";
+        SelectedUser = users?.FirstOrDefault(x => x.Id == id);
         showDeleteDialog = true;
         await Task.CompletedTask;
     }
+
 
     private async Task ConfirmDelete()
     {

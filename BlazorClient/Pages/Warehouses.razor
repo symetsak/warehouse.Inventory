@@ -52,9 +52,15 @@ else
                             <td>@w.Address</td>
                             <AuthorizeView Roles="Admin">
                                 <Authorized>
-                                    <td class="text-end wms-row-actions">
-                                        <button class="btn btn-secondary btn-sm me-1" @onclick="() => Edit(w.Id)"><i class="bi bi-pencil-square"></i></button>
-                                        <button class="btn btn-danger btn-sm" @onclick="() => Delete(w.Id)"><i class="bi bi-trash"></i></button>
+                                    <td class="text-center actions-cell">
+                                        <div class="d-flex justify-content-center gap-2 flex-wrap">
+                                            <button class="btn btn-secondary btn-sm me-1" @onclick="() => Edit(w.Id)">
+                                                <i class="bi bi-pencil-square"></i>
+                                            </button>
+                                            <button class="btn btn-danger btn-sm" @onclick="() => Delete(w.Id)">
+                                                <i class="bi bi-trash"></i>
+                                            </button>
+                                        </div>
                                     </td>
                                 </Authorized>
                             </AuthorizeView>
@@ -66,9 +72,12 @@ else
     </div>
 }
 
+<!--  Confirm Dialog -->
 <BlazorClient.Shared2.ConfirmDialog Visible="showDeleteDialog"
-                                    Title="Are you sure to delete ?"
-                                    Message="@deleteMessage"
+                                    Title="Διαγραφή Αποθήκης"
+                                    Message="@($"Θέλεις σίγουρα να διαγράψεις την αποθήκη '{SelectedWarehouse?.Name}';")"
+                                    CancelText="Ακύρωση"
+                                    ConfirmText="Διαγραφή"
                                     OnConfirm="ConfirmDelete"
                                     OnCancel="CancelDelete" />
 
@@ -77,8 +86,8 @@ else
     private string searchText = string.Empty;
 
     private bool showDeleteDialog;
-    private string deleteMessage = string.Empty;
     private int pendingDeleteId;
+    private WarehouseDto? SelectedWarehouse;
 
     protected override async Task OnInitializedAsync()
     {
@@ -100,9 +109,8 @@ else
 
     async Task Delete(int id)
     {
+        SelectedWarehouse = warehouses?.FirstOrDefault(x => x.Id == id);
         pendingDeleteId = id;
-        var w = warehouses?.FirstOrDefault(x => x.Id == id);
-        deleteMessage = w is null ? "Delete this warehouse?" : $"Warehouse \"{w?.Name}\" (ID {w?.Id})?";
         showDeleteDialog = true;
         await Task.CompletedTask;
     }
@@ -110,7 +118,9 @@ else
     private async Task ConfirmDelete()
     {
         showDeleteDialog = false;
-        await WarehouseService.DeleteAsync(pendingDeleteId);
+        if (SelectedWarehouse is null) return;
+
+        await WarehouseService.DeleteAsync(SelectedWarehouse.Id);
         warehouses = (await WarehouseService.GetAllAsync()).ToList();
     }
 

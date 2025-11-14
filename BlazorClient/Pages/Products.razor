@@ -8,13 +8,14 @@
 @using Microsoft.AspNetCore.Components.Authorization
 
 @inject IProductService ProductService
+@inject IWarehouseService WarehouseService
 @inject IJSRuntime JsRuntime
 
 <div class="wms-header">
     <h3 class="mb-0">Products</h3>
     <input class="form-control wms-search"
            placeholder="Search..."
-           @bind="searchText" 
+           @bind="searchText"
            @bind:event="oninput"
            @bind:after="OnSearchChanged" />
 </div>
@@ -36,166 +37,172 @@
 {
     <p><em>Loading...</em></p>
 }
-else if (VisibleCount == 0)
-{
-    <p>No products found.</p>
-}
 else
 {
-    <EditForm Model="formData">
-        <DataAnnotationsValidator />
-        <ValidationSummary />
-        <div class="row g-3">
-            <div class="col-md-4">
-                <label class="form-label">Code</label>
-                <InputText @bind-Value="formData.Code" class="form-control" readonly="@(!(isAdmin && isEditing))" />
-            </div>
-            <div class="col-md-4">
-                <label class="form-label">Name</label>
-                <InputText @bind-Value="formData.Name" class="form-control" readonly="@(!(isAdmin && isEditing))" />
-            </div>
-            <div class="col-md-4">
-                <label class="form-label">Unit</label>
-                <InputText @bind-Value="formData.Unit" class="form-control" readonly="@(!(isAdmin && isEditing))" />
-            </div>
-
-            <div class="col-md-6">
-                <label class="form-label">Description</label>
-                <InputTextArea @bind-Value="formData.Description" class="form-control" rows="2" readonly="@(!(isAdmin && isEditing))" />
-            </div>
-
-            <div class="col-md-3">
-                <label class="form-label">Quantity</label>
-                <InputNumber @bind-Value="formData.Quantity" class="form-control" @oninput="ComputeTotal" readonly="@(!(isAdmin && isEditing))" />
-            </div>
-            <div class="col-md-3">
-                <label class="form-label">Price</label>
-                <InputNumber @bind-Value="formData.Price" class="form-control" @oninput="ComputeTotal" readonly="@(!(isAdmin && isEditing))" />
-            </div>
-            <div class="col-md-3">
-                <label class="form-label">Total</label>
-                <InputNumber @bind-Value="formData.TotalValue" class="form-control" readonly />
-            </div>
-            <div class="col-md-3">
-                <label class="form-label">WarehouseId</label>
-                <InputNumber @bind-Value="formData.WarehouseId" class="form-control" readonly="@(!(isAdmin && isEditing))" />
-            </div>
-        </div>
-    </EditForm>
-
-    <nav>
-        <ul class="pagination justify-content-center mt-4 flex-wrap">
-
-            <!-- Πρώτη -->
-            <li class="page-item @(currentIndex == 0 ? "disabled" : "")">
-                <button class="page-link"
-                        @onclick="() => ChangeIndex(0)"
-                        disabled="@(currentIndex == 0)">
-                    &laquo;
-                </button>
-            </li>
-
-            <!-- Προηγούμενη -->
-            <li class="page-item @(currentIndex == 0 ? "disabled" : "")">
-                <button class="page-link"
-                        @onclick="() => ChangeIndex(currentIndex - 1)"
-                        disabled="@(currentIndex == 0)">
-                    &lt;
-                </button>
-            </li>
-
-            @foreach (var i in DisplayPages)
+    <div class="products-container">
+        <!-- ===== LEFT SIDE: PRODUCT TABLE ===== -->
+        <div class="products-list">
+            @if (products.Any())
             {
-                <li class="page-item @(i == currentIndex ? "active" : "")">
-                    <button class="page-link" @onclick="() => ChangeIndex(i)">@(i + 1)</button>
-                </li>
+                <div class="table-responsive">
+                    <table class="table table-hover table-bordered">
+                        <thead class="table-light">
+                            <tr>
+                                <th>Code</th>
+                                <th>Name</th>
+                                <th>Warehouse</th>
+                                <th class="text-center">Actions</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            @foreach (var p in products)
+                            {
+                                <tr class="@(formData.Id == p.Id ? "table-primary" : "")">
+                                    <td>@p.Code</td>
+                                    <td>@p.Name</td>
+                                    <td>@p.WarehouseName</td>
+                                    <td class="text-center">
+                                        <button class="btn btn-sm btn-primary" @onclick="() => ViewProduct(p.Id)">
+                                            <i class="bi bi-eye"></i> View
+                                        </button>
+                                    </td>
+                                </tr>
+                            }
+                        </tbody>
+                    </table>
+                </div>
             }
+            else
+            {
+                <p>No products found.</p>
+            }
+        </div>
 
-            <!-- Επόμενη -->
-            <li class="page-item @(currentIndex >= VisibleCount - 1 ? "disabled" : "")">
-                <button class="page-link"
-                        @onclick="() => ChangeIndex(currentIndex + 1)"
-                        disabled="@(currentIndex >= VisibleCount - 1)">
-                    &gt;
-                </button>
-            </li>
 
-            <!-- Τελευταία -->
-            <li class="page-item @(currentIndex >= VisibleCount - 1 ? "disabled" : "")">
-                <button class="page-link"
-                        @onclick="() => ChangeIndex(VisibleCount - 1)"
-                        disabled="@(currentIndex >= VisibleCount - 1)">
-                    &raquo;
-                </button>
-            </li>
+        <!-- ===== RIGHT SIDE: PRODUCT FORM ===== -->
+        <div class="product-detail">
+            @if (formData != null && (formData.Id > 0 || isNew))
+            {
+                <EditForm Model="formData">
+                    <DataAnnotationsValidator />
+                    <ValidationSummary />
 
-        </ul>
-    </nav>
+                    <div class="row g-3">
+                        <div class="col-md-4">
+                            <label class="form-label">Code</label>
+                            <InputText @bind-Value="formData.Code" class="form-control" readonly="@(!(isAdmin && isEditing))" />
+                        </div>
+                        <div class="col-md-4">
+                            <label class="form-label">Name</label>
+                            <InputText @bind-Value="formData.Name" class="form-control" readonly="@(!(isAdmin && isEditing))" />
+                        </div>
+                        <div class="col-md-4">
+                            <label class="form-label">Unit</label>
+                            <InputText @bind-Value="formData.Unit" class="form-control" readonly="@(!(isAdmin && isEditing))" />
+                        </div>
 
+                        <div class="col-md-6">
+                            <label class="form-label">Description</label>
+                            <InputTextArea @bind-Value="formData.Description" class="form-control" rows="2" readonly="@(!(isAdmin && isEditing))" />
+                        </div>
+
+                        <div class="col-md-3">
+                            <label class="form-label">Quantity</label>
+                            <InputNumber @bind-Value="formData.Quantity" class="form-control" @oninput="ComputeTotal" readonly="@(!(isAdmin && isEditing))" />
+                        </div>
+                        <div class="col-md-3">
+                            <label class="form-label">Price</label>
+                            <InputNumber @bind-Value="formData.Price" class="form-control" @oninput="ComputeTotal" readonly="@(!(isAdmin && isEditing))" />
+                        </div>
+                        <div class="col-md-3">
+                            <label class="form-label">Total</label>
+                            <InputNumber @bind-Value="formData.TotalValue" class="form-control" readonly />
+                        </div>
+
+                        <div class="col-md-3">
+                            <label class="form-label">Warehouse</label>
+                            @if (isAdmin && isEditing)
+                            {
+                                <InputSelect @bind-Value="formData.WarehouseId" class="form-select" @onchange="OnWarehouseChanged">
+                                    <option value="">-- Select Warehouse --</option>
+                                    @foreach (var w in warehouses)
+                                    {
+                                        <option value="@w.Id">@w.Name</option>
+                                    }
+                                </InputSelect>
+                            }
+                            else
+                            {
+                                <InputText @bind-Value="formData.WarehouseName" class="form-control" readonly />
+                            }
+                        </div>
+                    </div>
+                </EditForm>
+            }
+            else
+            {
+                <p class="text-muted mt-4">Select a product to view details.</p>
+            }
+        </div>
+    </div>
 }
 
 <!-- Shared confirm dialog -->
+<!-- Shared confirm dialog -->
 <BlazorClient.Shared2.ConfirmDialog Visible="showDeleteModal"
-                                    Title="Are you sure to delete ?"
-                                    Message="@deleteMessage"
+                                    Title="Διαγραφή Προϊόντος"
+                                    Message="@($"Θέλεις σίγουρα να διαγράψεις το προϊόν {SelectedProduct?.Name} (Code: {SelectedProduct?.Code});")"
+                                    CancelText="Ακύρωση"
+                                    ConfirmText="Διαγραφή"
                                     OnConfirm="ConfirmDelete"
                                     OnCancel="CancelDelete" />
 
+
+
 @code {
-    // ---- auth ----
     [CascadingParameter] private Task<AuthenticationState> AuthStateTask { get; set; } = default!;
     private bool isAdmin;
 
-    // ---- state ----
+    private ProductDto? SelectedProduct;
     private List<ProductDto> products = new();
-    private ProductDto formData = new ProductDto();
-    private int currentIndex;
+    private List<WarehouseDto> warehouses = new();
+    private ProductDto formData = new();
+    private ProductDto previousData = new();
     private bool isEditing;
     private bool isNew;
-    private ProductDto previousData = new ProductDto();
     private bool showDeleteModal = false;
     private string deleteMessage = "";
-
-    // ---- search ----
     private string searchText = string.Empty;
-
-    // Προκύπτουσα φιλτραρισμένη λίστα (on-demand)
-    private List<ProductDto> View =>
-        (products ?? new List<ProductDto>()).Where(Matches).ToList();
-
-    private int VisibleCount => View.Count;
 
     protected override async Task OnInitializedAsync()
     {
         var user = (await AuthStateTask).User;
         isAdmin = user.IsInRole("Admin");
 
+        warehouses = (await WarehouseService.GetAllAsync()).ToList();
         products = (await ProductService.GetAllAsync()).ToList();
-        if (VisibleCount > 0)
-            await ChangeIndex(0);
     }
 
-    private async Task OnSearchChanged()
+    private async Task ViewProduct(int id)
     {
-        // Με το που αλλάζει το search, πήγαινε στο 1ο ορατό αποτέλεσμα (αν υπάρχει)
-        if (VisibleCount > 0) await ChangeIndex(0);
-        else formData = new ProductDto();
+        var product = products.FirstOrDefault(x => x.Id == id);
+        if (product != null)
+        {
+            formData = Clone(product);
+            previousData = Clone(product);
+            isEditing = false;
+            isNew = false;
+            await InvokeAsync(StateHasChanged);
+        }
     }
 
-    private async Task ChangeIndex(int index)
+    private void OnWarehouseChanged(ChangeEventArgs e)
     {
-        var list = View;
-        if (list.Count == 0) { formData = new ProductDto(); return; }
-
-        if (index < 0) index = 0;
-        if (index >= list.Count) index = list.Count - 1;
-
-        currentIndex = index;
-        formData = Clone(list[index]);
-        previousData = Clone(formData);
-        isEditing = false;
-        isNew = false;
-        await InvokeAsync(StateHasChanged);
+        if (int.TryParse(e.Value?.ToString(), out var id))
+        {
+            formData.WarehouseId = id;
+            formData.WarehouseName = warehouses.FirstOrDefault(x => x.Id == id)?.Name ?? string.Empty;
+        }
     }
 
     private void ComputeTotal(ChangeEventArgs _) =>
@@ -205,7 +212,7 @@ else
     {
         if (!isAdmin) return;
         previousData = Clone(formData);
-        formData = new ProductDto();
+        formData = new ProductDto { WarehouseId = 0, WarehouseName = string.Empty };
         isNew = true;
         isEditing = true;
     }
@@ -232,22 +239,26 @@ else
             WarehouseId = formData.WarehouseId
         };
 
+        if (formData.WarehouseId <= 0)
+        {
+            await JsRuntime.InvokeVoidAsync("alert", "Please select a warehouse.");
+            return;
+        }
+
         try
         {
             if (isNew)
             {
                 var created = await ProductService.CreateAsync(dto);
                 products = (await ProductService.GetAllAsync()).ToList();
-                var list = View;
-                var idx = list.FindIndex(p => p.Id == created.Id);
-                await ChangeIndex(idx >= 0 ? idx : 0);
+                await ViewProduct(created.Id);
             }
             else
             {
                 await ProductService.UpdateAsync(formData.Id, dto);
                 var i = products.FindIndex(p => p.Id == formData.Id);
                 if (i >= 0) products[i] = Clone(formData);
-                await ChangeIndex(currentIndex);
+                await ViewProduct(formData.Id);
             }
         }
         catch (Exception ex)
@@ -264,27 +275,27 @@ else
     private void DeleteProduct()
     {
         if (!CanEdit) return;
-        deleteMessage = $"{formData.Code} - {formData.Name}";
+        SelectedProduct = formData; // το επιλεγμένο προϊόν
         showDeleteModal = true;
     }
 
     private async Task ConfirmDelete()
     {
         showDeleteModal = false;
-        if (!isAdmin) return;
+        if (!isAdmin || SelectedProduct is null) return;
 
-        await ProductService.DeleteAsync(formData.Id);
-
-        var i = products.FindIndex(p => p.Id == formData.Id);
-        if (i >= 0) products.RemoveAt(i);
-
-        if (VisibleCount > 0)
-            await ChangeIndex(Math.Min(currentIndex, VisibleCount - 1));
-        else
-            formData = new ProductDto();
+        await ProductService.DeleteAsync(SelectedProduct.Id);
+        products.RemoveAll(p => p.Id == SelectedProduct.Id);
+        formData = new ProductDto();
+        SelectedProduct = null;
     }
 
-    private void CancelDelete() => showDeleteModal = false;
+    private void CancelDelete()
+    {
+        showDeleteModal = false;
+        SelectedProduct = null;
+    }
+
 
     private void CancelEdit()
     {
@@ -294,7 +305,7 @@ else
         isNew = false;
     }
 
-    private ProductDto Clone(ProductDto src) => new ProductDto
+    private ProductDto Clone(ProductDto src) => new()
     {
         Id = src.Id,
         Code = src.Code,
@@ -308,44 +319,25 @@ else
         WarehouseName = src.WarehouseName
     };
 
-    // Sliding window up to 3 pages, πάνω στη φιλτραρισμένη λίστα
-    private IEnumerable<int> DisplayPages
+    private async Task OnSearchChanged()
     {
-        get
-        {
-            var total = VisibleCount;
-            const int max = 3;
-            if (total == 0) yield break;
-            int half = max / 2;
-            int start = currentIndex - half;
-            if (start < 0) start = 0;
-            if (start + max > total) start = Math.Max(0, total - max);
-            int end = Math.Min(start + max, total);
-            for (int i = start; i < end; i++)
-                yield return i;
-        }
+        if (products.Count == 0) return;
+        products = (await ProductService.GetAllAsync()).Where(Matches).ToList();
     }
 
     private bool Matches(ProductDto p)
     {
         var q = (searchText ?? string.Empty).Trim();
         if (q.Length == 0) return true;
-
-        bool Has(string? s) => !string.IsNullOrEmpty(s) &&
-                               s.Contains(q, StringComparison.OrdinalIgnoreCase);
+        bool Has(string? s) => !string.IsNullOrEmpty(s) && s.Contains(q, StringComparison.OrdinalIgnoreCase);
 
         return Has(p.Code)
             || Has(p.Name)
             || Has(p.Unit)
             || Has(p.Description)
-            || p.Quantity.ToString().Contains(q, StringComparison.OrdinalIgnoreCase)
-            || p.Price.ToString().Contains(q, StringComparison.OrdinalIgnoreCase)
-            || p.TotalValue.ToString().Contains(q, StringComparison.OrdinalIgnoreCase)
-            || p.WarehouseId.ToString().Contains(q, StringComparison.OrdinalIgnoreCase)
             || Has(p.WarehouseName);
     }
 
-    // μόνο Admin επιτρέπει edit/save/delete
-    private bool CanEdit => VisibleCount > 0 && !isEditing && isAdmin;
+    private bool CanEdit => formData.Id > 0 && !isEditing && isAdmin;
     private bool CanSave => isEditing && isAdmin;
 }
