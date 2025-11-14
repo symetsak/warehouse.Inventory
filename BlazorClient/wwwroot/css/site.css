@@ -285,3 +285,48 @@
         gap: .2rem;
     }
 }
+
+/* ===== INPUT vs OUTPUT Bar ===== */
+.text-input {
+    color: #0d6efd;
+    font-weight: 600;
+}
+
+.text-output {
+    color: #dc3545;
+    font-weight: 600;
+}
+
+.vs-text {
+    font-weight: 700;
+    margin: 0 6px;
+}
+
+/* Bar container */
+.io-bar {
+    width: 100%;
+    height: 45px;
+    display: flex;
+    overflow: hidden;
+    border-radius: 6px;
+}
+
+/* Left side (blue) */
+.io-input {
+    background: #0d6efd;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    color: white;
+    font-weight: 600;
+}
+
+/* Right side (red) */
+.io-output {
+    background: #dc3545;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    color: white;
+    font-weight: 600;
+}

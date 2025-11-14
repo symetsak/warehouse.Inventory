@@ -13,6 +13,7 @@ namespace BlazorClient.Services
         Task DeleteAsync(int id);
         Task<DashboardStatsDto?> GetDashboardStatsAsync();
         Task<List<WarehouseStatsDto>> GetWarehouseStatsAsync();
+        Task<TodayIODto> GetTodayIOAsync();
     }
 }
 

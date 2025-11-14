@@ -79,5 +79,29 @@ namespace WebApi.Controllers
 
             return Ok(stats);
         }
+
+        // GET: api/Dashboard/inputs-vs-outputs
+        [HttpGet("today-io")]
+        [Authorize]
+        public async Task<ActionResult<TodayIODto>> GetTodayIO()
+        {
+            var today = DateTime.UtcNow.Date;
+
+            var inputCount = await _db.Inventories
+                .Where(x => x.Action == "Input" && x.Timestamp.Date == today)
+                .CountAsync();
+
+            var outputCount = await _db.Inventories
+                .Where(x => x.Action == "Output" && x.Timestamp.Date == today)
+                .CountAsync();
+
+            return new TodayIODto
+            {
+                Input = inputCount,
+                Output = outputCount
+            };
+        }
+
+
     }
 }
