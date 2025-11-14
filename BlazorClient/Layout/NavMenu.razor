@@ -6,6 +6,7 @@
 
 <div class="nav-scrollable @NavMenuCssClass">
     <nav class="flex-column">
+
         <AuthorizeView>
             <Authorized Context="auth">
                 <div class="nav-item">
@@ -14,7 +15,6 @@
                         <span class="ms-2">Home</span>
                     </NavLink>
                 </div>
-
                 <div class="nav-item">
                     <NavLink class="nav-link" href="products" Match="NavLinkMatch.Prefix">
                         <span class="bi bi-box-seam"></span>
@@ -39,9 +39,15 @@
                         <span class="ms-2">Users</span>
                     </NavLink>
                 </div>
+                <div class="nav-item">
+                    <NavLink class="nav-link" href="announcements" Match="NavLinkMatch.Prefix">
+                        <span class="bi bi-bell"></span>
+                        <span class="ms-2">Announcements</span>
+                    </NavLink>
+                </div>
             </Authorized>
 
-            @* Optional: δείξε μόνο link για Login όταν δεν είναι authenticated *@
+            @* Εμφανίζει μόνο το Login όταν δεν υπάρχει auth *@
             <NotAuthorized>
                 <div class="nav-item">
                     <NavLink class="nav-link" href="login" Match="NavLinkMatch.All">
@@ -50,7 +56,9 @@
                     </NavLink>
                 </div>
             </NotAuthorized>
+
         </AuthorizeView>
+
     </nav>
 </div>
 
