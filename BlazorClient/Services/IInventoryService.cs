@@ -14,6 +14,8 @@ namespace BlazorClient.Services
         Task<DashboardStatsDto?> GetDashboardStatsAsync();
         Task<List<WarehouseStatsDto>> GetWarehouseStatsAsync();
         Task<TodayIODto> GetTodayIOAsync();
+        Task<List<TopProductMovementDto>> GetTopProductsAsync();
+
     }
 }
 
