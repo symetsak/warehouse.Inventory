@@ -61,6 +61,12 @@ namespace BlazorClient.Services
             return await _http.GetFromJsonAsync<TodayIODto>("api/dashboard/today-io")
                 ?? new TodayIODto();
         }
+        public async Task<List<TopProductMovementDto>> GetTopProductsAsync()
+        {
+            return await _http.GetFromJsonAsync<List<TopProductMovementDto>>(
+                "api/dashboard/top-products"
+            ) ?? new List<TopProductMovementDto>();
+        }
 
     }
 }

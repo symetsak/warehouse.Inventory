@@ -45,6 +45,16 @@
         </div>
     </div>
 
+    <!-- Top 5 Movements Products -->
+    <div class="card shadow-sm border-0 mb-3">
+        <div class="card-header bg-light py-2">
+            <h6 class="mb-0">Top Products by Movements</h6>
+        </div>
+        <div class="card-body p-2">
+            <canvas id="topProductsChart" height="70"></canvas>
+        </div>
+    </div>
+
     <!-- Στατιστικά Απογραφών -->
     <div class="row mb-4">
         <div class="col-md-4 mb-3">
@@ -123,6 +133,7 @@
     private int todayOutput;
     private DashboardStatsDto? dashboardStats;
     private List<WarehouseStatsDto> warehouseStats = new();
+    private List<TopProductMovementDto> topProducts = new();
 
     protected override async Task OnInitializedAsync()
     {
@@ -161,6 +172,25 @@
             Console.WriteLine($"Σφάλμα φόρτωσης warehouse stats: {ex.Message}");
             warehouseStats = new();
         }
+    }
+
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (firstRender)
+        {
+            await LoadTopProducts();
+        }
+    }
+
+    private async Task LoadTopProducts()
+    {
+        topProducts = await InventoryService.GetTopProductsAsync();
+
+        var labels = topProducts.Select(x => x.Code).ToArray();
+        var data = topProducts.Select(x => x.Total).ToArray();
+
+        await Js.InvokeVoidAsync("wmsCharts.renderBarChart",
+            "topProductsChart", labels, data);
     }
 
     private decimal InputPercent =>

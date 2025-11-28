@@ -102,6 +102,22 @@ namespace WebApi.Controllers
             };
         }
 
+        // GET: api/Dashboard/top-products
+        [HttpGet("top-products")]
+        [Authorize]
+        public async Task<List<TopProductMovementDto>> GetTopProductMovements()
+        {
+            return await _db.Inventories
+                .GroupBy(i => i.Code)
+                .Select(g => new TopProductMovementDto
+                {
+                    Code = g.Key,
+                    Total = g.Count()
+                })
+                .OrderByDescending(x => x.Total)
+                .Take(5)
+                .ToListAsync();
+        }
 
     }
 }
