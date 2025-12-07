@@ -5,6 +5,7 @@
 @using Microsoft.AspNetCore.Authorization
 @using Shared.DTOs
 @using System.Globalization
+@using System.Linq
 
 @inject IJSRuntime Js
 @inject BlazorClient.Services.Auth.AuthService AuthService
@@ -33,25 +34,15 @@
             else
             {
                 <div class="io-bar">
-                    <div class="io-input" style="width:@($"{InputPercent}%")">
+                    <div class="io-input" style="width:@InputPercentCss">
                         <span>@todayInput</span>
                     </div>
 
-                    <div class="io-output" style="width:@($"{OutputPercent}%")">
+                    <div class="io-output" style="width:@OutputPercentCss">
                         <span>@todayOutput</span>
                     </div>
                 </div>
             }
-        </div>
-    </div>
-
-    <!-- Top 5 Movements Products -->
-    <div class="card shadow-sm border-0 mb-3">
-        <div class="card-header bg-light py-2">
-            <h6 class="mb-0">Top Products by Movements</h6>
-        </div>
-        <div class="card-body p-2">
-            <canvas id="topProductsChart" height="70"></canvas>
         </div>
     </div>
 
@@ -82,6 +73,16 @@
                     <h2 class="fw-bold text-warning">@dashboardStats?.MonthInventories</h2>
                 </div>
             </div>
+        </div>
+    </div>
+
+    <!-- Top 5 Movements Products -->
+    <div class="card shadow-sm border-0 mb-3">
+        <div class="card-header bg-light py-2">
+            <h6 class="mb-0">Top Products by Movements</h6>
+        </div>
+        <div class="card-body p-2">
+            <canvas id="topProductsChart" height="70"></canvas>
         </div>
     </div>
 
@@ -126,6 +127,33 @@
         </div>
     </div>
 
+    <!-- Κατανομή Προϊόντων & Αξίας ανά Αποθήκη -->
+    <div class="card shadow-sm border-0 mb-4">
+        <div class="card-header bg-light">
+            <h6 class="mb-0">Κατανομή Αποθηκών</h6>
+        </div>
+
+        <div class="card-body">
+            <div class="wms-pie-row">
+
+                <!-- Πίτα Πλήθους Προϊόντων -->
+                <div class="wms-pie-container">
+                    <h6 class="text-center mb-2">Ποσότητα Προϊόντων</h6>
+                    <canvas id="warehousePieProducts"></canvas>
+                </div>
+
+                <!-- Πίτα Αξίας Προϊόντων-->
+                <div class="wms-pie-container">
+                    <h6 class="text-center mb-2">Αξία (€)</h6>
+                    <canvas id="warehousePieValue"></canvas>
+                </div>
+
+            </div>
+        </div>
+    </div>
+
+
+
 </div>
 
 @code {
@@ -134,12 +162,15 @@
     private DashboardStatsDto? dashboardStats;
     private List<WarehouseStatsDto> warehouseStats = new();
     private List<TopProductMovementDto> topProducts = new();
+    private string InputPercentCss => GetPercentCss(todayInput, todayOutput, true);
+    private string OutputPercentCss => GetPercentCss(todayInput, todayOutput, false);
 
     protected override async Task OnInitializedAsync()
     {
         await LoadDashboardStats();
         await LoadWarehouseStats();
         await LoadTodayIO();
+        await LoadTopProducts();
     }
 
     private async Task LoadTodayIO()
@@ -174,17 +205,23 @@
         }
     }
 
-    protected override async Task OnAfterRenderAsync(bool firstRender)
+    private async Task LoadTopProducts()
     {
-        if (firstRender)
+        try
         {
-            await LoadTopProducts();
+            topProducts = await InventoryService.GetTopProductsAsync();
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"Σφάλμα φόρτωσης top products: {ex.Message}");
+            topProducts = new();
         }
     }
 
-    private async Task LoadTopProducts()
+    private async Task RenderTopProductsBarAsync()
     {
-        topProducts = await InventoryService.GetTopProductsAsync();
+        if (topProducts == null || topProducts.Count == 0)
+            return;
 
         var labels = topProducts.Select(x => x.Code).ToArray();
         var data = topProducts.Select(x => x.Total).ToArray();
@@ -193,13 +230,67 @@
             "topProductsChart", labels, data);
     }
 
-    private decimal InputPercent =>
-    todayInput + todayOutput == 0
-        ? 0
-        : (todayInput * 100m / (todayInput + todayOutput));
+    private async Task RenderWarehouseProductsPieAsync()
+    {
+        if (warehouseStats == null || warehouseStats.Count == 0)
+            return;
 
-    private decimal OutputPercent =>
-        todayInput + todayOutput == 0
-            ? 0
-            : (todayOutput * 100m / (todayInput + todayOutput));
+        var labels = warehouseStats.Select(w => w.WarehouseName).ToArray();
+        var data = warehouseStats.Select(w => w.ProductCount).ToArray();
+
+        await Js.InvokeVoidAsync(
+            "wmsCharts.renderWarehousePie",
+            "warehousePieProducts",
+            labels,
+            data
+        );
+    }
+
+    private async Task RenderWarehouseValuePieAsync()
+    {
+        if (warehouseStats == null || warehouseStats.Count == 0)
+            return;
+
+        var labels = warehouseStats.Select(w => w.WarehouseName).ToArray();
+        var data = warehouseStats.Select(w => (double)w.TotalValue).ToArray();
+
+        await Js.InvokeVoidAsync(
+            "wmsCharts.renderWarehousePie",
+            "warehousePieValue",
+            labels,
+            data
+        );
+    }
+
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (topProducts != null && topProducts.Count > 0)
+        {
+            await RenderTopProductsBarAsync();
+        }
+
+        if (warehouseStats != null && warehouseStats.Count > 0)
+        {
+            await RenderWarehouseProductsPieAsync();
+            await RenderWarehouseValuePieAsync();
+        }
+    }
+
+
+    private string GetPercentCss(int input, int output, bool forInput)
+    {
+        var total = input + output;
+        if (total <= 0)
+            return "0%";
+
+        decimal value = forInput
+            ? (decimal)input * 100m / total
+            : (decimal)output * 100m / total;
+
+        // clamp just in case
+        if (value < 0) value = 0;
+        if (value > 100) value = 100;
+
+        return value.ToString("0.##", CultureInfo.InvariantCulture) + "%";
+    }
 }
