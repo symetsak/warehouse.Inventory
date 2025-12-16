@@ -44,32 +44,36 @@ else
         <div class="products-list">
             @if (products.Any())
             {
-                <div class="table-responsive">
-                    <table class="table table-hover table-bordered">
-                        <thead class="table-light">
-                            <tr>
-                                <th>Code</th>
-                                <th>Name</th>
-                                <th>Warehouse</th>
-                                <th class="text-center">Actions</th>
-                            </tr>
-                        </thead>
-                        <tbody>
-                            @foreach (var p in products)
-                            {
-                                <tr class="@(formData.Id == p.Id ? "table-primary" : "")">
-                                    <td>@p.Code</td>
-                                    <td>@p.Name</td>
-                                    <td>@p.WarehouseName</td>
-                                    <td class="text-center">
-                                        <button class="btn btn-sm btn-primary" @onclick="() => ViewProduct(p.Id)">
-                                            <i class="bi bi-eye"></i> View
-                                        </button>
-                                    </td>
+                <div class="table-responsive wms">
+                    <div class="wms-table-wrap">
+                        <table class="table table-striped table-hover wms-table wms-table-sm mb-0">
+                            <thead>
+                                <tr>
+                                    <th>Code</th>
+                                    <th>Name</th>
+                                    <th>Warehouse</th>
+                                    <th class="text-end actions-cell">Actions</th>
                                 </tr>
-                            }
-                        </tbody>
-                    </table>
+                            </thead>
+
+                            <tbody>
+                                @foreach (var p in products)
+                                {
+                                    <tr class="@(formData.Id == p.Id ? "table-primary" : "")">
+                                        <td>@p.Code</td>
+                                        <td>@p.Name</td>
+                                        <td>@p.WarehouseName</td>
+                                        <td class="text-end actions-cell">
+                                            <button class="btn btn-secondary btn-sm"
+                                                    @onclick="() => ViewProduct(p.Id)">
+                                                <i class="bi bi-eye"></i>
+                                            </button>
+                                        </td>
+                                    </tr>
+                                }
+                            </tbody>
+                        </table>
+                    </div>
                 </div>
             }
             else
