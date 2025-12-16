@@ -2,8 +2,8 @@ using BlazorClient;
 using BlazorClient.Services;
 using BlazorClient.Services.Announcements;
 using BlazorClient.Services.Auth;
+using BlazorClient.Services.Barcode;
 using BlazorClient.Services.Connectivity;
-// offline-first services
 using BlazorClient.Services.Offline;
 using BlazorClient.Services.Sync;
 using Microsoft.AspNetCore.Components.Authorization;

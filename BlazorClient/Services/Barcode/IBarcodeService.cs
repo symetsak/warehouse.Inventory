@@ -1,4 +1,4 @@
-﻿namespace BlazorClient.Services
+﻿namespace BlazorClient.Services.Barcode
 {
     public interface IBarcodeService
     {

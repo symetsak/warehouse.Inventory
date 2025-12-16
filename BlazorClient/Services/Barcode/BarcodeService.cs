@@ -1,4 +1,4 @@
-﻿using BlazorClient.Services;
+﻿using BlazorClient.Services.Barcode;
 using System.Net.Http.Json;
 
 public class BarcodeService : IBarcodeService
