@@ -122,30 +122,6 @@ namespace Infrastructure.Migrations
                     b.HasIndex("WarehouseId");
 
                     b.ToTable("Inventory", (string)null);
-
-                    b.HasData(
-                        new
-                        {
-                            Id = 1,
-                            Action = "Input",
-                            Code = "PRD001",
-                            Quantity = 0,
-                            ScanCode = "SCN1001",
-                            Timestamp = new DateTime(2025, 8, 1, 9, 0, 0, 0, DateTimeKind.Utc),
-                            UserId = 1,
-                            WarehouseId = 1
-                        },
-                        new
-                        {
-                            Id = 2,
-                            Action = "Input",
-                            Code = "PRD002",
-                            Quantity = 0,
-                            ScanCode = "SCN1002",
-                            Timestamp = new DateTime(2025, 8, 1, 10, 0, 0, 0, DateTimeKind.Utc),
-                            UserId = 2,
-                            WarehouseId = 1
-                        });
                 });
 
             modelBuilder.Entity("Core.Entities.Product", b =>
@@ -198,11 +174,11 @@ namespace Infrastructure.Migrations
                         {
                             Id = 1,
                             Code = "PRD001",
-                            Description = "500ml",
-                            Name = "Μπουκάλι Νερό",
-                            Price = 0.50m,
-                            Quantity = 100,
-                            TotalValue = 50m,
+                            Description = "15.6 i5 / 16GB RAM",
+                            Name = "Laptop Dell Latitude 5540",
+                            Price = 950.00m,
+                            Quantity = 10,
+                            TotalValue = 9500.00m,
                             Unit = "pcs",
                             WarehouseId = 1
                         },
@@ -210,25 +186,49 @@ namespace Infrastructure.Migrations
                         {
                             Id = 2,
                             Code = "PRD002",
-                            Description = "Pack 500",
-                            Name = "Χαρτί Α4",
-                            Price = 5.00m,
-                            Quantity = 20,
-                            TotalValue = 100m,
+                            Description = "IPS Full HD",
+                            Name = "Οθόνη Samsung 24",
+                            Price = 180.00m,
+                            Quantity = 15,
+                            TotalValue = 2700.00m,
                             Unit = "pcs",
-                            WarehouseId = 1
+                            WarehouseId = 3
                         },
                         new
                         {
                             Id = 3,
                             Code = "PRD003",
-                            Description = "Ξύλινο",
-                            Name = "Μολύβι HB",
-                            Price = 0.25m,
-                            Quantity = 200,
-                            TotalValue = 50m,
+                            Description = "USB Ελληνικό",
+                            Name = "Πληκτρολόγιο Logitech K120",
+                            Price = 12.00m,
+                            Quantity = 50,
+                            TotalValue = 600.00m,
                             Unit = "pcs",
                             WarehouseId = 2
+                        },
+                        new
+                        {
+                            Id = 4,
+                            Code = "PRD004",
+                            Description = "USB Οπτικό",
+                            Name = "Ποντίκι Logitech B100",
+                            Price = 8.50m,
+                            Quantity = 60,
+                            TotalValue = 510.00m,
+                            Unit = "pcs",
+                            WarehouseId = 5
+                        },
+                        new
+                        {
+                            Id = 5,
+                            Code = "PRD005",
+                            Description = "NVMe M.2",
+                            Name = "SSD Samsung 1TB",
+                            Price = 95.00m,
+                            Quantity = 12,
+                            TotalValue = 1140.00m,
+                            Unit = "pcs",
+                            WarehouseId = 4
                         });
                 });
 
@@ -385,6 +385,24 @@ namespace Infrastructure.Migrations
                             Id = 2,
                             Address = "Οδός Θησέως 45",
                             Name = "Υποκατάστημα Πειραιά"
+                        },
+                        new
+                        {
+                            Id = 3,
+                            Address = "Λεωφ. Νίκης 78",
+                            Name = "Υποκατάστημα Θεσσαλονίκης"
+                        },
+                        new
+                        {
+                            Id = 4,
+                            Address = "Οδός Κορίνθου 12",
+                            Name = "Υποκατάστημα Πατρών"
+                        },
+                        new
+                        {
+                            Id = 5,
+                            Address = "Οδός Βόλου 56",
+                            Name = "Υποκατάστημα Λάρισας"
                         });
                 });
 

@@ -122,20 +122,19 @@ namespace Infrastructure.Persistence
             // --- Seed Warehouses ---
             modelBuilder.Entity<Warehouse>().HasData(
                 new Warehouse { Id = 1, Name = "Κεντρική Αποθήκη", Address = "Λεωφ. Αθηνών 123" },
-                new Warehouse { Id = 2, Name = "Υποκατάστημα Πειραιά", Address = "Οδός Θησέως 45" }
+                new Warehouse { Id = 2, Name = "Υποκατάστημα Πειραιά", Address = "Οδός Θησέως 45" },
+                new Warehouse { Id = 3, Name = "Υποκατάστημα Θεσσαλονίκης", Address = "Λεωφ. Νίκης 78" },
+                new Warehouse { Id = 4, Name = "Υποκατάστημα Πατρών", Address = "Οδός Κορίνθου 12" },
+                new Warehouse { Id = 5, Name = "Υποκατάστημα Λάρισας", Address = "Οδός Βόλου 56" }
             );
 
             // --- Seed Products ---
             modelBuilder.Entity<Product>().HasData(
-                new Product { Id = 1, Code = "PRD001", Name = "Μπουκάλι Νερό", Description = "500ml", Unit = "pcs", Quantity = 100, Price = 0.50m, TotalValue = 50m, WarehouseId = 1 },
-                new Product { Id = 2, Code = "PRD002", Name = "Χαρτί Α4", Description = "Pack 500", Unit = "pcs", Quantity = 20, Price = 5.00m, TotalValue = 100m, WarehouseId = 1 },
-                new Product { Id = 3, Code = "PRD003", Name = "Μολύβι HB", Description = "Ξύλινο", Unit = "pcs", Quantity = 200, Price = 0.25m, TotalValue = 50m, WarehouseId = 2 }
-            );
-
-            // --- Seed Inventory ---
-            modelBuilder.Entity<Inventory>().HasData(
-                new Inventory { Id = 1, ScanCode = "SCN1001", Code = "PRD001", Action = "Input", WarehouseId = 1, UserId = 1, Timestamp = new DateTime(2025, 8, 1, 9, 0, 0, DateTimeKind.Utc) },
-                new Inventory { Id = 2, ScanCode = "SCN1002", Code = "PRD002", Action = "Input", WarehouseId = 1, UserId = 2, Timestamp = new DateTime(2025, 8, 1, 10, 0, 0, DateTimeKind.Utc) }
+                new Product { Id = 1, Code = "PRD001", Name = "Laptop Dell Latitude 5540", Description = "15.6 i5 / 16GB RAM", Unit = "pcs", Quantity = 10, Price = 950.00m, TotalValue = 9500.00m, WarehouseId = 1 },
+                new Product { Id = 2, Code = "PRD002", Name = "Οθόνη Samsung 24", Description = "IPS Full HD", Unit = "pcs", Quantity = 15, Price = 180.00m, TotalValue = 2700.00m, WarehouseId = 3 },
+                new Product { Id = 3, Code = "PRD003", Name = "Πληκτρολόγιο Logitech K120", Description = "USB Ελληνικό", Unit = "pcs", Quantity = 50, Price = 12.00m, TotalValue = 600.00m, WarehouseId = 2 },
+                new Product { Id = 4, Code = "PRD004", Name = "Ποντίκι Logitech B100", Description = "USB Οπτικό", Unit = "pcs", Quantity = 60, Price = 8.50m, TotalValue = 510.00m, WarehouseId = 5 },
+                new Product { Id = 5, Code = "PRD005", Name = "SSD Samsung 1TB", Description = "NVMe M.2", Unit = "pcs", Quantity = 12, Price = 95.00m, TotalValue = 1140.00m, WarehouseId = 4 }
             );
 
             // --- RefreshToken ---

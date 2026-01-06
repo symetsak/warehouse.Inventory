@@ -26,12 +26,21 @@ namespace BlazorClient.Services
         public async Task<InventoryDto> CreateAsync(CreateInventoryDto dto)
         {
             var response = await _http.PostAsJsonAsync("api/Inventory", dto);
-            response.EnsureSuccessStatusCode();
+
+            if (!response.IsSuccessStatusCode)
+            {
+                var error = await response.Content.ReadAsStringAsync();
+                throw new InvalidOperationException(error);
+            }
+
             var inventory = await response.Content.ReadFromJsonAsync<InventoryDto>();
+
             if (inventory is null)
                 throw new InvalidOperationException("API returned empty body for Create");
+
             return inventory;
         }
+
 
         public async Task UpdateAsync(int id, CreateInventoryDto dto)
         {
