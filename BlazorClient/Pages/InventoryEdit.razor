@@ -31,6 +31,13 @@
             <DataAnnotationsValidator />
             <ValidationSummary />
 
+            @if (!string.IsNullOrWhiteSpace(ErrorMessage))
+            {
+                <div class="alert alert-danger mt-3">
+                    @ErrorMessage
+                </div>
+            }
+
             <div class="edit-body two-col">
                 <!-- ScanCode + Camera Scan button -->
                 <div class="form-block">
@@ -110,6 +117,29 @@
                    ScannedCode="@pendingUnknownCode"
                    OnLinked="OnBarcodeLinked" />
 
+@if (showErrorModal)
+{
+    <div class="modal fade show d-block" tabindex="-1" style="background-color: rgba(0,0,0,.5)">
+        <div class="modal-dialog modal-dialog-centered">
+            <div class="modal-content">
+                <div class="modal-header bg-danger text-white">
+                    <h5 class="modal-title">Σφάλμα</h5>
+                    <button type="button" class="btn-close btn-close-white" @onclick="CloseErrorModal"></button>
+                </div>
+                <div class="modal-body">
+                    <p>@ErrorMessage</p>
+                </div>
+                <div class="modal-footer">
+                    <button class="btn btn-secondary" @onclick="CloseErrorModal">
+                        OK
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+}
+
+
 @code {
     [Parameter] public int? Id { get; set; }
 
@@ -117,6 +147,9 @@
     private List<ProductDto> products = new();
     private ProductDto? selectedProduct;          // κρατάμε το τρέχον προϊόν
     private string? currentUserFullName;
+    private string? ErrorMessage;
+    private bool showErrorModal;
+
 
     private int? _selectedProductId;
     private bool linkVisible;            // άνοιγμα/κλείσιμο αντιστοίχισης
@@ -297,11 +330,39 @@
                 NavManager.NavigateTo("/inventory");
                 return;
             }
+            catch (InvalidOperationException ex)
+            {
+                if (ex.Message.Contains("απόθεμα"))
+                {
+                    try
+                    {
+                        using var doc = System.Text.Json.JsonDocument.Parse(ex.Message);
+                        if (doc.RootElement.TryGetProperty("message", out var msg))
+                        {
+                            ErrorMessage = msg.GetString();
+                        }
+                        else
+                        {
+                            ErrorMessage = ex.Message;
+                        }
+                    }
+                    catch
+                    {
+                        ErrorMessage = ex.Message;
+                    }
+
+                    showErrorModal = true;
+                    return;
+                }
+
+                throw; // οποιοδήποτε άλλο InvalidOperationException να μην το κρύψουμε
+            }
             catch
             {
-                // θα πέσει στο fallback
+                // fallback (offline / queue)
             }
         }
+
 
         // Fallback: offline ή αποτυχία server
         await OfflineDb.SaveScanAsync(local, enqueueForSync: false); // inventory_scans
@@ -315,5 +376,11 @@
         });
 
         NavManager.NavigateTo("/inventory");
+    }
+
+    private void CloseErrorModal()
+    {
+        showErrorModal = false;
+        ErrorMessage = null;
     }
 }

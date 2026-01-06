@@ -47,6 +47,7 @@ namespace WebApi.Controllers
                 .Include(x => x.Warehouse)
                 .Include(x => x.User)
                 .FirstOrDefaultAsync(x => x.Id == id);
+
             if (i == null) return NotFound();
 
             return Ok(new InventoryDto
@@ -68,12 +69,30 @@ namespace WebApi.Controllers
         [HttpPost]
         public async Task<ActionResult<InventoryDto>> Create(CreateInventoryDto dto)
         {
-            // validate foreign keys
             if (!await _db.Warehouses.AnyAsync(w => w.Id == dto.WarehouseId))
                 return BadRequest($"Invalid warehouseId: {dto.WarehouseId}");
+
             if (!await _db.Users.AnyAsync(u => u.Id == dto.UserId))
                 return BadRequest($"Invalid userId: {dto.UserId}");
 
+            var product = await _db.Products
+                .FirstOrDefaultAsync(p => p.Code == dto.Code);
+
+            if (product == null)
+                return BadRequest("Invalid product code");
+
+            if (dto.Action == "Output")
+            {
+                if (product.Quantity <= 0 || dto.Quantity > product.Quantity)
+                {
+                    return BadRequest(new
+                    {
+                        message = "Το απόθεμα δεν επαρκεί για αυτή την ενέργεια"
+                    });
+                }
+            }
+
+            // Δημιουργία Inventory
             var entity = new Inventory
             {
                 ScanCode = dto.ScanCode,
@@ -82,20 +101,19 @@ namespace WebApi.Controllers
                 Quantity = dto.Quantity,
                 WarehouseId = dto.WarehouseId,
                 UserId = dto.UserId,
+                Timestamp = DateTime.UtcNow
             };
 
             _db.Inventories.Add(entity);
+
+            // Ενημέρωση προϊόντος
+            product.Quantity += dto.Action == "Input"
+                ? dto.Quantity
+                : -dto.Quantity;
+
+            product.TotalValue = product.Quantity * product.Price;
+
             await _db.SaveChangesAsync();
-
-            // μετά το await _db.SaveChangesAsync() του Inventory:
-            var product = await _db.Products.FirstOrDefaultAsync(p => p.Code == dto.Code);
-            if (product != null)
-            {
-                product.Quantity += dto.Action == "Input" ? dto.Quantity : -dto.Quantity;
-                product.TotalValue = product.Quantity * product.Price;
-                await _db.SaveChangesAsync();
-            }
-
 
             var response = new InventoryDto
             {
@@ -124,12 +142,33 @@ namespace WebApi.Controllers
 
             if (!await _db.Warehouses.AnyAsync(w => w.Id == dto.WarehouseId))
                 return BadRequest($"Invalid warehouseId: {dto.WarehouseId}");
+
             if (!await _db.Users.AnyAsync(u => u.Id == dto.UserId))
                 return BadRequest($"Invalid userId: {dto.UserId}");
+
+            var product = await _db.Products
+                .FirstOrDefaultAsync(p => p.Code == dto.Code);
+
+            if (product == null)
+                return BadRequest("Invalid product code");
 
             int oldDelta = entity.Action == "Input"
                 ? entity.Quantity
                 : -entity.Quantity;
+
+            int newDelta = dto.Action == "Input"
+                ? dto.Quantity
+                : -dto.Quantity;
+
+            int diff = newDelta - oldDelta;
+
+            if (product.Quantity + diff < 0)
+            {
+                return BadRequest(new
+                {
+                    message = "Το απόθεμα δεν επαρκεί για αυτή την ενέργεια"
+                });
+            }
 
             entity.ScanCode = dto.ScanCode;
             entity.Code = dto.Code;
@@ -138,22 +177,10 @@ namespace WebApi.Controllers
             entity.WarehouseId = dto.WarehouseId;
             entity.UserId = dto.UserId;
 
+            product.Quantity += diff;
+            product.TotalValue = product.Quantity * product.Price;
+
             await _db.SaveChangesAsync();
-
-            int newDelta = dto.Action == "Input"
-                ? dto.Quantity
-                : -dto.Quantity;
-
-            // Εφαρμογή της διαφοράς στο προϊόν
-            var product = await _db.Products
-                .FirstOrDefaultAsync(p => p.Code == dto.Code);
-            if (product != null)
-            {
-                int diff = newDelta - oldDelta;
-                product.Quantity += diff;
-                product.TotalValue = product.Quantity * product.Price;
-                await _db.SaveChangesAsync();
-            }
 
             return NoContent();
         }
@@ -168,6 +195,7 @@ namespace WebApi.Controllers
 
             _db.Inventories.Remove(entity);
             await _db.SaveChangesAsync();
+
             return NoContent();
         }
     }
